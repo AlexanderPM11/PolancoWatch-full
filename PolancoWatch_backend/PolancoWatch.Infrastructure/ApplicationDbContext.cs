@@ -27,6 +27,13 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Performance Indexes
+        modelBuilder.Entity<HistoricalMetric>()
+            .HasIndex(h => h.Timestamp);
+
+        modelBuilder.Entity<WebCheck>()
+            .HasIndex(w => new { w.WebMonitorId, w.Timestamp });
         
         // SQLite doesn't store timezone info. We force all DateTime properties to be Utc on read.
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>(

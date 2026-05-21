@@ -57,6 +57,7 @@ builder.Services.AddSingleton<ITelegramService, TelegramService>();
 builder.Services.AddSingleton<IBackupService, BackupService>();
 builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 builder.Services.AddSingleton<BackupManager>();
+builder.Services.AddScoped<DatabaseMaintenanceService>();
 
 builder.Services.AddSingleton<IBackupStrategy, LocalFileBackupStrategy>();
 builder.Services.AddSingleton<IBackupStrategy, DockerDatabaseBackupStrategy>();
@@ -369,6 +370,8 @@ app.MapHub<MetricsHub>("/metricshub");
 app.MapHub<LogsHub>("/logshub");
 app.MapHub<BackupHub>("/backuphub");
 
+// Schedule Database Maintenance Job (Daily at 3:00 AM)
+RecurringJob.AddOrUpdate<DatabaseMaintenanceService>("DbMaintenance", x => x.CleanOldDataAsync(), "0 3 * * *");
 
 app.Run();
 

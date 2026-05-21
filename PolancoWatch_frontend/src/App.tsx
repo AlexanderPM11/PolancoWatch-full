@@ -1,17 +1,18 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Documentation from './pages/Documentation';
-import Processes from './pages/Processes';
-import Alerts from './pages/Alerts';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import { Loader2 } from 'lucide-react';
 
-import Profile from './pages/Profile';
-import WebMonitors from './pages/WebMonitors';
-import WebMonitorDetails from './pages/WebMonitorDetails';
-import Backups from './pages/Backups';
+const Login = React.lazy(() => import('./pages/Login'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Documentation = React.lazy(() => import('./pages/Documentation'));
+const Processes = React.lazy(() => import('./pages/Processes'));
+const Alerts = React.lazy(() => import('./pages/Alerts'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+const WebMonitors = React.lazy(() => import('./pages/WebMonitors'));
+const WebMonitorDetails = React.lazy(() => import('./pages/WebMonitorDetails'));
+const Backups = React.lazy(() => import('./pages/Backups'));
 import Sidebar from './components/Sidebar';
 import { authService } from './services/api';
 
@@ -38,10 +39,21 @@ function App() {
     </div>
   );
 
+  const CyberpunkLoader = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-obsidian-950 text-brand-primary">
+      <div className="relative flex items-center justify-center">
+        <div className="absolute inset-0 bg-brand-primary/20 blur-[40px] rounded-full animate-pulse-slow"></div>
+        <Loader2 size={48} className="animate-spin text-brand-primary relative z-10" />
+      </div>
+      <p className="mt-6 text-sm font-black uppercase tracking-[0.3em] text-brand-primary/80 animate-pulse">Initializing Subsystem...</p>
+    </div>
+  );
+
   return (
     <>
       <BrowserRouter>
-        <Routes>
+        <React.Suspense fallback={<CyberpunkLoader />}>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -125,7 +137,8 @@ function App() {
               </PrivateRoute>
             } 
           />
-        </Routes>
+          </Routes>
+        </React.Suspense>
       </BrowserRouter>
       <ReloadPrompt />
     </>
