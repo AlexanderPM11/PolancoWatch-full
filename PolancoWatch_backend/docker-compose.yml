@@ -11,6 +11,22 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
+      - JWT_KEY=${JWT_KEY:?JWT_KEY is required}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-}
+      - APP_URL=${APP_URL:-http://localhost:5173}
+      - Cors__AllowedOrigins__0=${APP_URL:-http://localhost:5173}
+      - BACKUP_HOST_PATH=${BACKUP_HOST_PATH:-polancowatch_backups}
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - GOOGLE_DRIVE_CLIENT_ID=${GOOGLE_DRIVE_CLIENT_ID:-}
+      - GOOGLE_DRIVE_CLIENT_SECRET=${GOOGLE_DRIVE_CLIENT_SECRET:-}
+      - GOOGLE_DRIVE_REFRESH_TOKEN=${GOOGLE_DRIVE_REFRESH_TOKEN:-}
+      - GOOGLE_DRIVE_REDIRECT_URI=${GOOGLE_DRIVE_REDIRECT_URI:-}
+      - GOOGLE_DRIVE_DEFAULT_FOLDER_ID=${GOOGLE_DRIVE_DEFAULT_FOLDER_ID:-}
     
     # --- DOKPLOY METRICS MAGIC ---
     # This allows the container to see all processes on the real host (VPS)
