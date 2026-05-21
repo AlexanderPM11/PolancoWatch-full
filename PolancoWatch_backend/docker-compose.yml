@@ -3,7 +3,6 @@ services:
     build: 
       context: . 
       dockerfile: Dockerfile
-    container_name: polancowatch_backend_core
     env_file:
       - path: ../.env
         required: false
@@ -36,7 +35,6 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:5246}
-    container_name: polancowatch_frontend
     ports:
       - "${PORT:-5173}:80"
     depends_on:
@@ -45,6 +43,4 @@ services:
 
 volumes:
   polancowatch_db_data:
-    name: polancowatch_db_data
   polancowatch_backups:
-    name: polancowatch_backups
