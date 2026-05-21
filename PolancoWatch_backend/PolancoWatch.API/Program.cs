@@ -3,7 +3,11 @@ using PolancoWatch.Infrastructure.Hubs;
 using PolancoWatch.API.Hubs;
 using PolancoWatch.Application.Interfaces;
 using PolancoWatch.Infrastructure.Services;
+using PolancoWatch.Infrastructure.Services.BackupStrategies;
+using PolancoWatch.API.Filters;
 
+using Hangfire;
+using Hangfire.Storage.SQLite;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -53,9 +57,21 @@ builder.Services.AddSingleton<ITelegramService, TelegramService>();
 builder.Services.AddSingleton<IBackupService, BackupService>();
 builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 builder.Services.AddSingleton<BackupManager>();
-builder.Services.AddHostedService<BackupSchedulerHostedService>();
-builder.Services.AddSignalR();
 
+builder.Services.AddSingleton<IBackupStrategy, LocalFileBackupStrategy>();
+builder.Services.AddSingleton<IBackupStrategy, DockerDatabaseBackupStrategy>();
+builder.Services.AddSingleton<IBackupStrategy, DockerVolumeBackupStrategy>();
+builder.Services.AddSingleton<BackupStrategyFactory>();
+
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSQLiteStorage(builder.Configuration.GetConnectionString("DefaultConnection")!.Replace("Data Source=", "")));
+
+builder.Services.AddHangfireServer();
+
+builder.Services.AddSignalR();
 
 // Configure Docker Client (Singleton)
 builder.Services.AddSingleton<IDockerClient>(sp => {
@@ -254,6 +270,16 @@ using (var scope = app.Services.CreateScope())
         
         context.SaveChanges();
     }
+
+    // Schedule Recurring Jobs for Hangfire
+    var schedules = context.BackupSchedules.Where(s => s.IsActive).ToList();
+    foreach (var schedule in schedules)
+    {
+        RecurringJob.AddOrUpdate<BackupManager>(
+            $"backup_{schedule.Id}", 
+            manager => manager.RunBackupAsync(schedule.Type, schedule.Target, schedule.Format, schedule.SyncToCloud, schedule.CloudFolderId, null, schedule.KeepLocal, schedule.RetentionCount, schedule.SendTelegram, "system"), 
+            schedule.CronExpression);
+    }
 }
 
 // Configure the HTTP request pipeline.
@@ -317,6 +343,11 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireJwtAuthorizationFilter() }
+});
 
 if (app.Environment.IsProduction() && !enableSwagger)
 {

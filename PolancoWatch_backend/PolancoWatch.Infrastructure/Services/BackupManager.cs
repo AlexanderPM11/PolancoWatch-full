@@ -12,26 +12,27 @@ using PolancoWatch.Infrastructure.Hubs;
 using Microsoft.EntityFrameworkCore;
 using PolancoWatch.Infrastructure.Helpers;
 using PolancoWatch.Domain.Common;
+using PolancoWatch.Infrastructure.Services.BackupStrategies;
 
 namespace PolancoWatch.Infrastructure.Services;
 
 public class BackupManager
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly IBackupService _backupService;
+    private readonly BackupStrategyFactory _backupStrategyFactory;
     private readonly IGoogleDriveService _googleDriveService;
     private readonly IHubContext<BackupHub> _hubContext;
     private readonly ILogger<BackupManager> _logger;
 
     public BackupManager(
         IServiceProvider serviceProvider,
-        IBackupService backupService,
+        BackupStrategyFactory backupStrategyFactory,
         IGoogleDriveService googleDriveService,
         IHubContext<BackupHub> hubContext,
         ILogger<BackupManager> logger)
     {
         _serviceProvider = serviceProvider;
-        _backupService = backupService;
+        _backupStrategyFactory = backupStrategyFactory;
         _googleDriveService = googleDriveService;
         _hubContext = hubContext;
         _logger = logger;
@@ -48,7 +49,6 @@ public class BackupManager
 
         _logger.LogInformation("[{Timestamp}] RunBackupAsync triggered: Type={Type}, SyncToCloud={SyncToCloud}, KeepLocal={KeepLocal}", timestamp, type, syncToCloud, keepLocal);
 
-        // Previous drNow was already calculated above for the timestamp
         var backup = new Backup
         {
             Name = backupName ?? $"{type}_{drNow:yyyyMMddHHmmss}",
@@ -65,36 +65,33 @@ public class BackupManager
 
         try
         {
-            string filePath;
-            if (type == BackupType.Database)
-            {
-                if (string.IsNullOrEmpty(target))
-                {
-                    filePath = await _backupService.CreateDatabaseBackupAsync(format, backup.Name);
-                }
-                else
-                {
-                    string containerRef = target;
-                    string? dbName = null;
-                    string dbUser = "root";
-                    string? dbPass = null;
+            string containerRef = target ?? string.Empty;
+            string? dbName = null;
+            string dbUser = "root";
+            string? dbPass = null;
 
-                    if (target.Contains("::"))
-                    {
-                        var parts = target.Split("::");
-                        containerRef = parts[0];
-                        if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1])) dbName = parts[1];
-                        if (parts.Length > 2 && !string.IsNullOrEmpty(parts[2])) dbUser = parts[2];
-                        if (parts.Length > 3 && !string.IsNullOrEmpty(parts[3])) dbPass = parts[3];
-                    }
-                    filePath = await _backupService.CreateDockerDatabaseBackupAsync(containerRef, dbName, format, backup.Name, dbUser, dbPass);
-                }
-            }
-            else
+            if (type == BackupType.Database && !string.IsNullOrEmpty(target) && target.Contains("::"))
             {
-                if (string.IsNullOrEmpty(target)) throw new ArgumentException("Target path is required for volume backups.");
-                filePath = await _backupService.CreateVolumeBackupAsync(target, format, backup.Name);
+                var parts = target.Split("::");
+                containerRef = parts[0];
+                if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1])) dbName = parts[1];
+                if (parts.Length > 2 && !string.IsNullOrEmpty(parts[2])) dbUser = parts[2];
+                if (parts.Length > 3 && !string.IsNullOrEmpty(parts[3])) dbPass = parts[3];
             }
+
+            var backupContext = new BackupContext
+            {
+                Type = type,
+                TargetPath = containerRef,
+                Format = format,
+                BackupName = backup.Name,
+                DbName = dbName,
+                DbUser = dbUser,
+                DbPass = dbPass
+            };
+
+            var strategy = _backupStrategyFactory.GetStrategy(type, containerRef);
+            string filePath = await strategy.ExecuteBackupAsync(backupContext);
 
             // Integrity check: ensure the backup file exists and is not 0 bytes
             var fileInfo = new FileInfo(filePath);
