@@ -127,8 +127,7 @@ public class BackupService : IBackupService
     {
         // On Linux/Docker, we need to know the path or volume name AS SEEN BY THE HOST.
         // We prioritize BACKUP_HOST_PATH environment variable.
-        string? backupDirOnHost = Environment.GetEnvironmentVariable("BACKUP_HOST_PATH") 
-                               ?? _configuration["Backup:HostPath"];
+        string? backupDirOnHost = await ResolveBackupHostPathAsync(destinationFilePath);
 
         if (string.IsNullOrEmpty(backupDirOnHost))
         {
@@ -193,6 +192,97 @@ public class BackupService : IBackupService
         finally
         {
             await _dockerClient.Containers.RemoveContainerAsync(createResponse.ID, new ContainerRemoveParameters { Force = true });
+        }
+    }
+
+    private async Task<string?> ResolveBackupHostPathAsync(string destinationFilePath)
+    {
+        var destinationDirectory = Path.GetDirectoryName(destinationFilePath) ?? _backupRootPath;
+
+        var configured = Environment.GetEnvironmentVariable("BACKUP_HOST_PATH") 
+                         ?? _configuration["Backup:HostPath"];
+
+        if (!string.IsNullOrWhiteSpace(configured) && await BackendCanSeeHelperOutputAsync(configured, destinationDirectory))
+        {
+            return configured;
+        }
+
+        var hostname = Environment.MachineName;
+        if (!string.IsNullOrWhiteSpace(hostname))
+        {
+            try
+            {
+                var container = await _dockerClient.Containers.InspectContainerAsync(hostname);
+                var backupMount = container.Mounts?
+                    .FirstOrDefault(m => string.Equals(m.Destination, destinationDirectory, StringComparison.OrdinalIgnoreCase));
+
+                if (!string.IsNullOrWhiteSpace(backupMount?.Name))
+                {
+                    return backupMount.Name;
+                }
+
+                if (!string.IsNullOrWhiteSpace(backupMount?.Source))
+                {
+                    return backupMount.Source;
+                }
+            }
+            catch
+            {
+                // Fall back to the configured value or destination directory below.
+            }
+        }
+
+        return !string.IsNullOrWhiteSpace(configured) ? configured : destinationDirectory;
+    }
+
+    private async Task<bool> BackendCanSeeHelperOutputAsync(string backupHostPath, string destinationDirectory)
+    {
+        var probeFileName = $".polancowatch_probe_{Guid.NewGuid():N}";
+        var backendProbePath = Path.Combine(destinationDirectory, probeFileName);
+
+        var containerConfig = new Config
+        {
+            Image = "alpine:latest",
+            Cmd = new[] { "sh", "-c", $"touch /backup/{probeFileName}" },
+            Tty = false
+        };
+
+        var containerParams = new CreateContainerParameters(containerConfig)
+        {
+            HostConfig = new HostConfig
+            {
+                Binds = new[] { $"{backupHostPath}:/backup" }
+            },
+            Name = $"backup_probe_{Guid.NewGuid():N}"
+        };
+
+        try
+        {
+            await EnsureImageExistsAsync("alpine:latest");
+            var createResponse = await _dockerClient.Containers.CreateContainerAsync(containerParams);
+
+            try
+            {
+                await _dockerClient.Containers.StartContainerAsync(createResponse.ID, null);
+                var waitResponse = await _dockerClient.Containers.WaitContainerAsync(createResponse.ID);
+                return waitResponse.StatusCode == 0 && File.Exists(backendProbePath);
+            }
+            finally
+            {
+                await _dockerClient.Containers.RemoveContainerAsync(createResponse.ID, new ContainerRemoveParameters { Force = true });
+                if (File.Exists(backendProbePath))
+                {
+                    File.Delete(backendProbePath);
+                }
+            }
+        }
+        catch
+        {
+            if (File.Exists(backendProbePath))
+            {
+                File.Delete(backendProbePath);
+            }
+            return false;
         }
     }
 
