@@ -268,7 +268,19 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Redirect("/swagger"));
+if (app.Environment.IsProduction())
+{
+    app.MapGet("/", () => Results.Ok(new
+    {
+        name = "PolancoWatch API",
+        status = "running",
+        environment = "Production"
+    }));
+}
+else
+{
+    app.MapGet("/", () => Results.Redirect("/swagger"));
+}
 
 app.MapControllers();
 app.MapHub<MetricsHub>("/metricshub");
