@@ -90,27 +90,26 @@ export default function Dashboard() {
                 ) : (
                     <>
                         {/* System Info Header */}
-                        <div className="glass-panel rounded-4xl p-4 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-glow">
-
-                            <div className="flex items-center gap-6">
-                                <div className="w-16 h-16 bg-brand-primary/10 text-brand-primary rounded-2xl flex items-center justify-center border border-brand-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+                        <div className="glass-panel rounded-4xl p-4 md:p-8 flex flex-col xl:flex-row items-center justify-between gap-6 border-glow w-full overflow-hidden">
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start xl:items-center gap-4 sm:gap-6 w-full xl:w-auto text-center sm:text-left min-w-0">
+                                <div className="w-16 h-16 shrink-0 bg-brand-primary/10 text-brand-primary rounded-2xl flex items-center justify-center border border-brand-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
                                     <Server size={32} strokeWidth={1.5} />
                                 </div>
-                                <div>
-                                    <div className="flex items-center gap-3">
-                                        <h1 className="text-2xl font-bold text-white tracking-tight">{metrics?.systemInfo?.hostname || 'PROBING HOST...'}</h1>
-                                        <span className="px-2 py-0.5 rounded bg-brand-secondary/10 text-brand-secondary text-[10px] font-bold border border-brand-secondary/20 uppercase tracking-widest">Master Node</span>
+                                <div className="flex flex-col min-w-0 items-center sm:items-start w-full">
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 max-w-full">
+                                        <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight truncate">{metrics?.systemInfo?.hostname || 'PROBING HOST...'}</h1>
+                                        <span className="shrink-0 px-2 py-0.5 rounded bg-brand-secondary/10 text-brand-secondary text-[10px] font-bold border border-brand-secondary/20 uppercase tracking-widest">Master Node</span>
                                     </div>
-                                    <p className="text-sm text-slate-300 font-semibold mt-2 flex items-center gap-4">
-                                        <span className="flex items-center gap-1.5"><Activity size={14} className="text-brand-secondary" /> {metrics?.systemInfo?.osVersion}</span>
-                                        <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                                        <span className="font-mono text-xs opacity-90">Kern: {metrics?.systemInfo?.kernelVersion}</span>
-                                    </p>
+                                    <div className="text-xs md:text-sm text-slate-300 font-semibold mt-2 flex flex-wrap justify-center sm:justify-start items-center gap-2 md:gap-4 w-full">
+                                        <span className="flex items-center gap-1.5 truncate max-w-full"><Activity size={14} className="text-brand-secondary shrink-0" /> <span className="truncate">{metrics?.systemInfo?.osVersion}</span></span>
+                                        <span className="hidden sm:block w-1 h-1 rounded-full bg-slate-600 shrink-0"></span>
+                                        <span className="font-mono text-[10px] md:text-xs opacity-90 truncate max-w-full">Kern: {metrics?.systemInfo?.kernelVersion}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-center md:items-end bg-white/10 py-4 px-8 rounded-2xl border border-white/10 min-w-[200px] shadow-inner">
-                                <p className="text-[10px] text-slate-300 uppercase tracking-[0.2em] font-black mb-2">System Uptime</p>
-                                <p className="text-4xl font-black font-mono text-white tracking-tighter text-glow-primary">
+                            <div className="flex flex-col items-center xl:items-end bg-white/10 py-4 px-4 md:px-8 rounded-2xl border border-white/10 w-full xl:w-auto min-w-[200px] shadow-inner">
+                                <p className="text-[10px] text-slate-300 uppercase tracking-[0.2em] font-black mb-2 text-center xl:text-right">System Uptime</p>
+                                <p className="text-3xl md:text-4xl font-black font-mono text-white tracking-tighter text-glow-primary">
                                     {metrics?.systemInfo?.uptime?.split('.')[0] || '00:00:00'}
                                 </p>
                             </div>
