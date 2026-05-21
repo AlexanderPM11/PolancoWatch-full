@@ -65,7 +65,7 @@ export default function Login() {
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-obsidian-900/60 text-white text-sm font-black focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/5 outline-none transition-all placeholder:text-slate-700 uppercase tracking-widest"
+                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-obsidian-900/60 text-white text-base md:text-sm font-black focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/5 outline-none transition-all placeholder:text-slate-700 uppercase tracking-widest"
                             placeholder="ADMIN_USER"
                             required
                         />
@@ -78,7 +78,7 @@ export default function Login() {
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-obsidian-900/60 text-white text-sm focus:border-brand-secondary/50 focus:ring-4 focus:ring-brand-secondary/5 outline-none transition-all placeholder:text-slate-700 font-mono pr-14"
+                                className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-obsidian-900/60 text-white text-base md:text-sm focus:border-brand-secondary/50 focus:ring-4 focus:ring-brand-secondary/5 outline-none transition-all placeholder:text-slate-700 font-mono pr-14"
                                 placeholder="••••••••"
                                 required
                             />

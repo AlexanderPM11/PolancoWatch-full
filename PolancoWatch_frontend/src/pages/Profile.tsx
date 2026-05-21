@@ -65,7 +65,7 @@ export default function Profile() {
                 </header>
 
                 <div className="grid grid-cols-1 gap-8">
-                    <form onSubmit={handleUpdate} className="glass-panel rounded-4xl border-white/5 p-8 lg:p-12 space-y-10">
+                    <form onSubmit={handleUpdate} className="glass-panel rounded-4xl border-white/5 p-4 md:p-8 lg:p-12 space-y-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                             {/* Identity Section */}
                             <div className="space-y-6">
@@ -80,7 +80,7 @@ export default function Profile() {
                                             type="text" 
                                             value={currentUsername}
                                             readOnly
-                                            className="w-full bg-obsidian-900/60 border border-white/5 rounded-2xl px-6 py-4 text-sm font-black text-slate-500 cursor-not-allowed focus:outline-none transition-all uppercase tracking-widest"
+                                            className="w-full bg-obsidian-900/60 border border-white/5 rounded-2xl px-6 py-4 text-base font-black text-slate-500 cursor-not-allowed focus:outline-none transition-all uppercase tracking-widest"
                                         />
                                     </div>
                                     <p className="text-[10px] text-slate-500 italic uppercase">Your current handle is <span className="text-white font-bold">{currentUsername}</span></p>
@@ -102,7 +102,7 @@ export default function Profile() {
                                                 value={newPassword}
                                                 onChange={(e) => setNewPassword(e.target.value)}
                                                 placeholder="LEAVE BLANK TO KEEP"
-                                                className="w-full bg-obsidian-900/60 border border-white/5 rounded-2xl px-6 py-4 text-sm font-black text-white placeholder:text-slate-700 focus:outline-none focus:border-brand-secondary/50 focus:ring-4 focus:ring-brand-secondary/5 transition-all font-mono pr-14"
+                                                className="w-full bg-obsidian-900/60 border border-white/5 rounded-2xl px-6 py-4 text-base font-black text-white placeholder:text-slate-700 focus:outline-none focus:border-brand-secondary/50 focus:ring-4 focus:ring-brand-secondary/5 transition-all font-mono pr-14"
                                             />
                                             <button
                                                 type="button"

@@ -70,7 +70,7 @@ export default function ForgotPassword() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-obsidian-900/60 text-white text-sm font-black focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/5 outline-none transition-all placeholder:text-slate-700 uppercase tracking-widest"
+                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-obsidian-900/60 text-white text-base md:text-sm font-black focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/5 outline-none transition-all placeholder:text-slate-700 uppercase tracking-widest"
                             placeholder="ADMIN@EXAMPLE.COM"
                             required
                         />

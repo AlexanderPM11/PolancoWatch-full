@@ -285,7 +285,7 @@ export default function Alerts() {
                                                                 type="number"
                                                                 value={rule.threshold}
                                                                 onChange={(e) => updateThreshold(rule, e.target.value)}
-                                                                className="w-16 bg-obsidian-950 border border-white/5 rounded-xl px-2 py-2 text-xs font-mono font-black text-brand-primary focus:outline-none focus:border-brand-primary/50"
+                                                                className="w-16 bg-obsidian-950 border border-white/5 rounded-xl px-2 py-2 text-base md:text-xs font-mono font-black text-brand-primary focus:outline-none focus:border-brand-primary/50"
                                                             />
                                                             <span className="text-[10px] font-black text-slate-500">%</span>
                                                         </div>
@@ -298,7 +298,7 @@ export default function Alerts() {
                                                                 type="number"
                                                                 value={rule.cooldownSeconds}
                                                                 onChange={(e) => updateCooldown(rule, e.target.value)}
-                                                                className="w-16 bg-obsidian-950 border border-white/5 rounded-xl px-2 py-2 text-xs font-mono font-black text-brand-secondary focus:outline-none focus:border-brand-secondary/50"
+                                                                className="w-16 bg-obsidian-950 border border-white/5 rounded-xl px-2 py-2 text-base md:text-xs font-mono font-black text-brand-secondary focus:outline-none focus:border-brand-secondary/50"
                                                             />
                                                             <span className="text-[10px] font-black text-slate-500">s</span>
                                                         </div>
@@ -382,7 +382,7 @@ export default function Alerts() {
                                                     value={settings?.telegramBotToken || ''}
                                                     onChange={(e) => setSettings(s => s ? { ...s, telegramBotToken: e.target.value } : null)}
                                                     placeholder="0000000000:AA..."
-                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-xs font-mono font-black text-white focus:outline-none focus:border-sky-500/50"
+                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-xs font-mono font-black text-white focus:outline-none focus:border-sky-500/50"
                                                 />
                                             </div>
                                             <div className="flex flex-col gap-2">
@@ -392,7 +392,7 @@ export default function Alerts() {
                                                     value={settings?.telegramChatId || ''}
                                                     onChange={(e) => setSettings(s => s ? { ...s, telegramChatId: e.target.value } : null)}
                                                     placeholder="eg. -100123456789"
-                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-xs font-mono font-black text-white focus:outline-none focus:border-sky-500/50"
+                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-xs font-mono font-black text-white focus:outline-none focus:border-sky-500/50"
                                                 />
                                             </div>
                                             <div className="flex flex-col gap-2">
@@ -419,7 +419,7 @@ export default function Alerts() {
                                                     value={settings?.telegramMessageTemplate || ''}
                                                     onChange={(e) => setSettings(s => s ? { ...s, telegramMessageTemplate: e.target.value } : null)}
                                                     placeholder="🚨 *Alert* \n {Message}"
-                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-[11px] font-mono leading-relaxed text-sky-400 focus:outline-none focus:border-sky-500/50 resize-none"
+                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-[11px] font-mono leading-relaxed text-sky-400 focus:outline-none focus:border-sky-500/50 resize-none"
                                                 />
                                             </div>
                                         </div>
@@ -454,7 +454,7 @@ export default function Alerts() {
                                                         type="text"
                                                         value={settings?.smtpHost || ''}
                                                         onChange={(e) => setSettings(s => s ? { ...s, smtpHost: e.target.value } : null)}
-                                                        className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-xs font-mono font-black text-white focus:outline-none focus:border-rose-500/50"
+                                                        className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-xs font-mono font-black text-white focus:outline-none focus:border-rose-500/50"
                                                     />
                                                 </div>
                                                 <div className="flex flex-col gap-2">
@@ -463,7 +463,7 @@ export default function Alerts() {
                                                         type="number"
                                                         value={settings?.smtpPort || 587}
                                                         onChange={(e) => setSettings(s => s ? { ...s, smtpPort: parseInt(e.target.value) } : null)}
-                                                        className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-xs font-mono font-black text-white focus:outline-none focus:border-rose-500/50"
+                                                        className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-xs font-mono font-black text-white focus:outline-none focus:border-rose-500/50"
                                                     />
                                                 </div>
                                             </div>
@@ -484,7 +484,7 @@ export default function Alerts() {
                                                     type="email"
                                                     value={settings?.toEmail || ''}
                                                     onChange={(e) => setSettings(s => s ? { ...s, toEmail: e.target.value } : null)}
-                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-xs font-mono font-black text-white focus:outline-none focus:border-rose-500/50"
+                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-xs font-mono font-black text-white focus:outline-none focus:border-rose-500/50"
                                                 />
                                             </div>
                                             <div className="flex flex-col gap-2">
@@ -511,7 +511,7 @@ export default function Alerts() {
                                                     value={settings?.emailMessageTemplate || ''}
                                                     onChange={(e) => setSettings(s => s ? { ...s, emailMessageTemplate: e.target.value } : null)}
                                                     placeholder="<h2 style='color: #ff4444;'>🚨 Alert: {Metric}</h2>"
-                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-[11px] font-mono leading-relaxed text-rose-400 focus:outline-none focus:border-rose-500/50 resize-none"
+                                                    className="w-full bg-obsidian-950 border border-white/5 rounded-2xl px-4 py-3 text-base md:text-[11px] font-mono leading-relaxed text-rose-400 focus:outline-none focus:border-rose-500/50 resize-none"
                                                 />
                                             </div>
                                         </div>

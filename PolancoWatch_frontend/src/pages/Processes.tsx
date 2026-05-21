@@ -132,7 +132,7 @@ export default function Processes() {
                                 placeholder="SEARCH PID_OR_NAME..."
                                 value={searchTerm}
                                  onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-obsidian-900/60 border border-white/5 rounded-2xl pl-12 pr-6 py-4 text-sm font-black text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/5 w-full md:w-80 transition-all uppercase tracking-widest"
+                                className="bg-obsidian-900/60 border border-white/5 rounded-2xl pl-12 pr-6 py-4 text-base md:text-sm font-black text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/5 w-full md:w-80 transition-all uppercase tracking-widest"
                             />
                         </div>
 

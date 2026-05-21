@@ -90,7 +90,7 @@ export default function Dashboard() {
                 ) : (
                     <>
                         {/* System Info Header */}
-                        <div className="glass-panel rounded-4xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-glow">
+                        <div className="glass-panel rounded-4xl p-4 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-glow">
 
                             <div className="flex items-center gap-6">
                                 <div className="w-16 h-16 bg-brand-primary/10 text-brand-primary rounded-2xl flex items-center justify-center border border-brand-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
@@ -119,7 +119,7 @@ export default function Dashboard() {
                         {/* Primary Metrics Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {/* CPU Card */}
-                            <div className="glass-card rounded-4xl p-8 relative overflow-hidden group border-white/5">
+                            <div className="glass-card rounded-4xl p-4 md:p-8 relative overflow-hidden group border-white/5">
                                 <div className="absolute top-0 right-0 w-40 h-40 bg-brand-primary/10 rounded-full blur-[80px] -mr-16 -mt-16 transition-all group-hover:bg-brand-primary/20"></div>
                                 <div className="flex justify-between items-start mb-6 relative z-10">
                                     <div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* RAM Card */}
-                            <div className="glass-card rounded-4xl p-8 relative overflow-hidden group border-white/5">
+                            <div className="glass-card rounded-4xl p-4 md:p-8 relative overflow-hidden group border-white/5">
                                 <div className="absolute top-0 right-0 w-40 h-40 bg-brand-secondary/10 rounded-full blur-[80px] -mr-16 -mt-16 transition-all group-hover:bg-brand-secondary/20"></div>
                                 <div className="flex justify-between items-start mb-6 relative z-10">
                                     <div>
@@ -212,7 +212,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Network Card */}
-                            <div className="glass-card rounded-4xl p-8 relative overflow-hidden group lg:col-span-2 border-white/5">
+                            <div className="glass-card rounded-4xl p-4 md:p-8 relative overflow-hidden group lg:col-span-2 border-white/5">
                                 <div className="absolute top-0 right-0 w-60 h-60 bg-brand-primary/10 rounded-full blur-[100px] -mr-32 -mt-32 transition-all"></div>
                                 <div className="flex justify-between items-start mb-8 relative z-10">
                                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -256,7 +256,7 @@ export default function Dashboard() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             {/* Disks List */}
-                            <div className="glass-card rounded-4xl p-8 lg:col-span-2 border-white/5">
+                            <div className="glass-card rounded-4xl p-4 md:p-8 lg:col-span-2 border-white/5">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
                                         <HardDrive size={18} className="text-brand-secondary" /> Volume Health
@@ -293,7 +293,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Alerts / Events Feed */}
-                            <div className="glass-card rounded-4xl p-8 border-white/5">
+                            <div className="glass-card rounded-4xl p-4 md:p-8 border-white/5">
                                 <div className="flex items-center gap-3 mb-8">
                                     <Activity size={18} className="text-brand-accent animate-pulse" />
                                     <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Signal Log</h3>

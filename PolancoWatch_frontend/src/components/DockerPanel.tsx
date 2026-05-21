@@ -156,7 +156,7 @@ export const DockerPanel: React.FC<DockerPanelProps> = ({ containers, stats: glo
 
                 <div className="glass-panel rounded-3xl border-white/5 bg-obsidian-950/40 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left hidden md:table">
                             <thead>
                                 <tr className="border-b border-white/5 bg-white/2">
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Container</th>
@@ -267,6 +267,95 @@ export const DockerPanel: React.FC<DockerPanelProps> = ({ containers, stats: glo
                                 ))}
                             </tbody>
                         </table>
+
+                        {/* Mobile Cards View */}
+                        <div className="flex md:hidden flex-col gap-4 p-4">
+                            {paginatedContainers.map((container) => (
+                                <div key={container.containerId} className="bg-obsidian-900 border border-white/5 rounded-2xl p-4 flex flex-col gap-4 relative overflow-hidden">
+                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                                        container.state === 'running' ? 'bg-brand-secondary' : 
+                                        container.status.toLowerCase().includes('exit') && !container.status.includes('exit (0)') ? 'bg-brand-accent' : 'bg-slate-700'
+                                    }`}></div>
+                                    
+                                    <div className="flex items-start justify-between gap-4 ml-2">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-sm font-black text-white truncate">{container.name}</span>
+                                            <span className="text-[10px] text-slate-500 font-mono truncate">{container.image}</span>
+                                        </div>
+                                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter border shrink-0 ${
+                                            container.state === 'running' 
+                                                ? 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20 shadow-[0_0_10px_rgba(34,211,238,0.1)]' 
+                                                : container.status.toLowerCase().includes('exit') && !container.status.includes('exit (0)')
+                                                ? 'bg-brand-accent/10 text-brand-accent border-brand-accent/20'
+                                                : 'bg-slate-800 text-slate-400 border-white/5'
+                                        }`}>
+                                            {container.state}
+                                        </span>
+                                    </div>
+
+                                    <div className="ml-2 grid grid-cols-2 gap-4">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex justify-between text-[10px] font-mono font-bold text-white">
+                                                <span>CPU: {container.cpuPercentage.toFixed(1)}%</span>
+                                            </div>
+                                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                                <div 
+                                                    className={`h-full transition-all duration-1000 ${
+                                                        container.cpuPercentage > 80 ? 'bg-brand-accent' : 'bg-brand-primary'
+                                                    }`}
+                                                    style={{ width: `${Math.min(container.cpuPercentage * 2, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-1 justify-center">
+                                            <div className="flex justify-between text-[10px] font-mono font-bold text-white">
+                                                <span>RAM: {(container.memoryUsageBytes / 1024 / 1024).toFixed(0)} MB</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="ml-2 flex items-center justify-between mt-2 pt-4 border-t border-white/5">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[9px] font-mono text-slate-400"><span className="text-brand-secondary opacity-50">NET:</span> {container.networkIO || '0B / 0B'}</span>
+                                            <span className="text-[9px] font-mono text-slate-400"><span className="text-brand-primary opacity-50">I/O:</span> {container.blockIO || '0B / 0B'}</span>
+                                        </div>
+
+                                        <div className="flex gap-1.5 shrink-0">
+                                            {container.state !== 'running' ? (
+                                                <button 
+                                                    onClick={() => handleAction(container.containerId, 'start')}
+                                                    disabled={loadingIds.has(container.containerId)}
+                                                    className="p-2 rounded-xl bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary hover:bg-brand-secondary/20 transition-all disabled:opacity-50"
+                                                >
+                                                    <Play size={16} fill="currentColor" />
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => handleAction(container.containerId, 'stop')}
+                                                    disabled={loadingIds.has(container.containerId)}
+                                                    className="p-2 rounded-xl bg-brand-accent/10 border border-brand-accent/20 text-brand-accent hover:bg-brand-accent/20 transition-all disabled:opacity-50"
+                                                >
+                                                    <Square size={16} fill="currentColor" />
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={() => handleAction(container.containerId, 'restart')}
+                                                disabled={loadingIds.has(container.containerId)}
+                                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50"
+                                            >
+                                                <RotateCcw size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => setSelectedLogContainer({ id: container.containerId, name: container.name })}
+                                                className="p-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary hover:bg-brand-primary/20 transition-all"
+                                            >
+                                                <Terminal size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     {filteredContainers.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-16 bg-white/1 border-t border-dashed border-white/5">

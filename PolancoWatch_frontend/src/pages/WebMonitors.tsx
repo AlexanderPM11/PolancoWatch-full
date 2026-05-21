@@ -370,7 +370,7 @@ export default function WebMonitors() {
                                 placeholder="Filter endpoints..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder:text-slate-600 focus:outline-hidden focus:border-brand-primary/50 transition-all w-48 md:w-64 font-medium"
+                                className="pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-base md:text-xs text-white placeholder:text-slate-600 focus:outline-hidden focus:border-brand-primary/50 transition-all w-48 md:w-64 font-medium"
                             />
                         </div>
                         <button 
@@ -483,7 +483,7 @@ export default function WebMonitors() {
                                     placeholder="e.g. Production API"
                                     value={newMonitor.name}
                                     onChange={e => setNewMonitor({...newMonitor, name: e.target.value})}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base md:text-sm text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -494,7 +494,7 @@ export default function WebMonitors() {
                                     placeholder="https://api.myapp.com/health"
                                     value={newMonitor.url}
                                     onChange={e => setNewMonitor({...newMonitor, url: e.target.value})}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base md:text-sm text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -506,12 +506,12 @@ export default function WebMonitors() {
                                         min="1"
                                         value={newMonitor.interval}
                                         onChange={e => setNewMonitor({...newMonitor, interval: parseInt(e.target.value) || 1})}
-                                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
+                                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base md:text-sm text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
                                     />
                                     <select
                                         value={intervalUnit}
                                         onChange={e => setIntervalUnit(e.target.value as typeof intervalUnit)}
-                                        className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-brand-primary/50 transition-all font-medium text-sm cursor-pointer"
+                                        className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-base md:text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all font-medium cursor-pointer"
                                     >
                                         <option value="seconds" className="bg-obsidian-900">Seconds</option>
                                         <option value="minutes" className="bg-obsidian-900">Minutes</option>
@@ -531,7 +531,7 @@ export default function WebMonitors() {
                                         step="100"
                                         value={newMonitor.slowThresholdMs}
                                         onChange={e => setNewMonitor({...newMonitor, slowThresholdMs: parseInt(e.target.value) || 5000})}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base md:text-sm text-white focus:outline-hidden focus:border-brand-primary/50 transition-all font-medium"
                                     />
                                 </div>
                                 <div className="space-y-4">

@@ -164,7 +164,7 @@ const VaultOverlay = ({ isOpen, onClose, title, children, footer }: {
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-obsidian-950/80 backdrop-blur-xl animate-fade-in" onClick={onClose}></div>
-      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col glass-panel rounded-[2.5rem] border border-white/10 p-8 shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-float-up">
+      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col glass-panel rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-float-up">
         <div className="flex items-center justify-between mb-6 shrink-0">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-brand-primary/10 rounded-2xl border border-brand-primary/20 text-brand-primary">
@@ -645,7 +645,7 @@ const Backups = () => {
   };
 
   return (
-    <div className="p-8 pb-20 max-w-7xl mx-auto space-y-12 h-screen mb-20">
+    <div className="p-4 md:p-8 pb-20 max-w-7xl mx-auto space-y-12 h-screen mb-20">
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4 text-brand-primary">
@@ -825,7 +825,7 @@ const Backups = () => {
           {activeTab === 'history' ? (
             <>
               <div className="overflow-x-auto custom-scrollbar flex-1">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse hidden xl:table">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/2">
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Status</th>
@@ -921,6 +921,67 @@ const Backups = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Cards for History */}
+              <div className="flex xl:hidden flex-col gap-4 mt-4">
+                {backups.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage).map(backup => (
+                    <div key={backup.id} className="bg-obsidian-900 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                                    {getStatusIcon(backup.status)}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-black text-white uppercase tracking-tight">{backup.name}</span>
+                                    <span className="text-[10px] text-slate-500 font-mono mt-1">{format(new Date(backup.createdAt), 'MMM dd | HH:mm:ss')}</span>
+                                </div>
+                            </div>
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border shrink-0 ${
+                              backup.type === 1 ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20'
+                            }`}>
+                              {backup.type === 1 ? 'DB' : 'VOL'}
+                            </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Size</span>
+                                <span className="text-xs font-black text-slate-300">{formatSize(backup.size)} <span className="text-[8px] text-slate-600 ml-1">{backup.format === 0 ? 'ZIP' : 'TAR.GZ'}</span></span>
+                            </div>
+                            <div className="flex flex-col gap-1 items-end">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Cloud</span>
+                                {backup.cloudSyncStatus === 1 ? (
+                                  <a href={backup.cloudLink} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg"><Cloud size={14} /></a>
+                                ) : backup.cloudSyncStatus === 2 ? (
+                                  <div className="p-1.5 bg-rose-500/10 text-rose-400 rounded-lg"><XCircle size={14} /></div>
+                                ) : <span className="text-slate-800 font-black">—</span>}
+                            </div>
+                        </div>
+
+                        {backup.status === 1 && (
+                            <span className="text-[9px] text-brand-primary/80 font-bold uppercase flex items-center gap-1">
+                              <Loader2 size={10} className="animate-spin" /> {progress[backup.id]?.message || 'PROCESSING...'}
+                            </span>
+                        )}
+                        {backup.status === 3 && backup.errorMessage && (
+                            <span className="text-[9px] text-rose-400/80 font-bold uppercase flex items-center gap-1">
+                              <AlertCircle size={10} /> {backup.errorMessage}
+                            </span>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+                            <button onClick={() => handleDownload(backup.id, backup.name, backup.filePath)} className="p-2.5 bg-white/5 text-slate-400 hover:text-white rounded-xl"><Download size={14} /></button>
+                            <button onClick={() => handleDelete(backup.id)} className="p-2.5 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 rounded-xl"><Trash2 size={14} /></button>
+                        </div>
+                    </div>
+                ))}
+                {backups.length === 0 && !loading && (
+                    <div className="py-16 text-center opacity-40">
+                        <Database size={40} className="mx-auto mb-4" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Vault is empty</span>
+                    </div>
+                )}
+              </div>
               <Pagination 
                 currentPage={historyPage} 
                 totalItems={backups.length} 
@@ -931,7 +992,7 @@ const Backups = () => {
           ) : (
             <>
               <div className="overflow-x-auto custom-scrollbar flex-1">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse hidden xl:table">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/2">
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Status</th>
@@ -1050,6 +1111,76 @@ const Backups = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Cards for Schedules */}
+              <div className="flex xl:hidden flex-col gap-4 mt-4">
+                {schedules.slice((schedulesPage - 1) * itemsPerPage, schedulesPage * itemsPerPage).map(s => (
+                    <div key={s.id} className="bg-obsidian-900 border border-white/5 rounded-2xl p-4 flex flex-col gap-4 relative overflow-hidden">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => handleToggleScheduleAsync(s)}
+                                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${s.isActive ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'bg-white/10'}`}
+                                >
+                                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${s.isActive ? 'translate-x-5' : 'translate-x-0 bg-slate-400'}`} />
+                                </button>
+                                <span className="text-sm font-black text-white uppercase tracking-tight">{s.name}</span>
+                            </div>
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border shrink-0 ${
+                              s.type === 1 ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20'
+                            }`}>
+                              {s.type === 1 ? 'DB' : 'VOL'}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Storage</span>
+                                <div className="flex items-center gap-2">
+                                    <div className={`p-1 rounded text-[10px] ${!s.syncToCloud ? 'text-slate-500' : s.keepLocal ? 'text-emerald-400 bg-emerald-500/5' : 'text-brand-primary bg-brand-primary/5'}`}>
+                                        {!s.syncToCloud ? <FolderSync size={12} /> : s.keepLocal ? <Cloud size={12} /> : <Download size={12} />}
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400">{!s.syncToCloud ? 'LOCAL' : s.keepLocal ? 'SYNC+CLOUD' : 'CLOUD'}</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1 items-end">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Retention</span>
+                                {s.syncToCloud && (s.retentionCount ?? 0) > 0 ? (
+                                    <span className="text-[10px] font-black bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded border border-brand-primary/20">LIM: {s.retentionCount}</span>
+                                ) : <span className="text-[10px] font-black text-slate-600">∞</span>}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Frequency</span>
+                                <span className="text-[10px] font-black text-white uppercase">
+                                   {s.useCron ? (s.cronExpression?.split(' ')[4] === '*' ? 'Daily' : 'Weekly') : `Every ${s.intervalMinutes}m`}
+                                </span>
+                            </div>
+                            <div className="flex flex-col gap-1 items-end">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Next Run</span>
+                                <span className="text-[10px] font-black text-brand-secondary uppercase text-right">
+                                   {s.nextRun ? format(new Date(s.nextRun), 'hh:mm aa | MMM dd') : '—'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-3 border-t border-white/5 mt-2">
+                            <button onClick={() => handleToggleTelegramAsync(s)} className={`p-2.5 rounded-xl transition-colors ${s.sendTelegram ? 'bg-sky-500/10 text-sky-400' : 'bg-white/5 text-slate-500'}`}><MessageCircle size={14} /></button>
+                            <button onClick={() => handleRunSchedule(s.id, s.name)} disabled={runningProtocols[s.id]} className="p-2.5 bg-white/5 text-slate-400 rounded-xl disabled:opacity-50">{runningProtocols[s.id] ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <Play size={14} />}</button>
+                            <button onClick={() => handleEditSchedule(s)} className="p-2.5 bg-white/5 text-slate-400 hover:text-brand-primary rounded-xl"><Settings size={14} /></button>
+                            <button onClick={() => confirmDeleteSchedule(s.id)} className="p-2.5 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 rounded-xl"><Trash2 size={14} /></button>
+                        </div>
+                    </div>
+                ))}
+                {schedules.length === 0 && (
+                    <div className="py-16 text-center opacity-40">
+                        <Clock size={40} className="mx-auto mb-4" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">No Protocols defined</span>
+                    </div>
+                )}
+              </div>
               <Pagination 
                 currentPage={schedulesPage} 
                 totalItems={schedules.length} 
@@ -1117,11 +1248,11 @@ const Backups = () => {
                 <div className="flex gap-2">
                   <div className="flex-1 space-y-2">
                     <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">DB User</label>
-                    <input type="text" placeholder="root" className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-[10px] text-white outline-none focus:border-brand-primary/50" value={newBackupDbUser} onChange={(e) => setNewBackupDbUser(e.target.value)} />
+                    <input type="text" placeholder="root" className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={newBackupDbUser} onChange={(e) => setNewBackupDbUser(e.target.value)} />
                   </div>
                   <div className="flex-1 space-y-2">
                     <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Password</label>
-                    <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-[10px] text-white outline-none focus:border-brand-primary/50" value={newBackupDbPass} onChange={(e) => setNewBackupDbPass(e.target.value)} />
+                    <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={newBackupDbPass} onChange={(e) => setNewBackupDbPass(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2 relative">
@@ -1152,7 +1283,7 @@ const Backups = () => {
           <input 
             type="text" 
             placeholder="System will generate alias..." 
-            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs text-white outline-none focus:border-brand-primary/50"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-base md:text-xs text-white outline-none focus:border-brand-primary/50"
             value={newBackupName}
             onChange={(e) => setNewBackupName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
           />
@@ -1193,7 +1324,7 @@ const Backups = () => {
               <input
                 type="text"
                 placeholder="Target Folder ID (uses default if empty)"
-                className="w-full bg-black/40 border border-brand-secondary/20 rounded-2xl px-5 py-3 text-xs text-brand-secondary placeholder:text-slate-700 outline-none focus:border-brand-secondary/50"
+                className="w-full bg-black/40 border border-brand-secondary/20 rounded-2xl px-5 py-3 text-base md:text-xs text-brand-secondary placeholder:text-slate-700 outline-none focus:border-brand-secondary/50"
                 value={newBackupCloudFolderId}
                 onChange={(e) => setNewBackupCloudFolderId(parseFolderId(e.target.value))}
               />
@@ -1203,7 +1334,7 @@ const Backups = () => {
                   <input 
                     type="number" 
                     min="0"
-                    className="w-full bg-black/40 border border-brand-secondary/10 rounded-lg px-3 py-2 text-[10px] text-brand-secondary outline-none focus:border-brand-secondary/50"
+                    className="w-full bg-black/40 border border-brand-secondary/10 rounded-lg px-3 py-2 text-base md:text-[10px] text-brand-secondary outline-none focus:border-brand-secondary/50"
                     value={newBackupRetention}
                     onChange={(e) => setNewBackupRetention(parseInt(e.target.value) || 0)}
                   />
@@ -1273,7 +1404,7 @@ const Backups = () => {
                 <input 
                   type="text" 
                   placeholder="Name" 
-                  className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm text-white outline-none focus:border-brand-primary/50 ${isEditingSchedule ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-base md:text-sm text-white outline-none focus:border-brand-primary/50 ${isEditingSchedule ? 'opacity-50 cursor-not-allowed' : ''}`}
                   value={newSchedName}
                   onChange={(e) => !isEditingSchedule && setNewSchedName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
                   disabled={isEditingSchedule}
@@ -1325,7 +1456,7 @@ const Backups = () => {
                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input 
                     type="number" 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-5 py-4 text-xs text-white outline-none focus:border-brand-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-5 py-4 text-base md:text-xs text-white outline-none focus:border-brand-primary/50"
                     value={newSchedInterval}
                     onChange={(e) => setNewSchedInterval(Number(e.target.value))}
                   />
@@ -1337,7 +1468,7 @@ const Backups = () => {
                   <div className="space-y-2">
                     <label className="text-[8px] font-black uppercase text-slate-600 tracking-widest ml-1">Frequency</label>
                     <select 
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white outline-none appearance-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-base md:text-xs text-white outline-none appearance-none"
                       value={calendarFreq}
                       onChange={(e) => setCalendarFreq(e.target.value as any)}
                     >
@@ -1349,7 +1480,7 @@ const Backups = () => {
                     <label className="text-[8px] font-black uppercase text-slate-600 tracking-widest ml-1">Execution Time (24h)</label>
                     <input 
                       type="time" 
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-brand-primary/50"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-base md:text-xs text-white outline-none focus:border-brand-primary/50"
                       value={scheduledTime}
                       onChange={(e) => setScheduledTime(e.target.value)}
                     />
@@ -1411,11 +1542,11 @@ const Backups = () => {
                   <div className="flex gap-2">
                     <div className="flex-1 space-y-2">
                       <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">DB User</label>
-                      <input type="text" placeholder="root" className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-[10px] text-white outline-none focus:border-brand-primary/50" value={newSchedDbUser} onChange={(e) => setNewSchedDbUser(e.target.value)} />
+                      <input type="text" placeholder="root" className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={newSchedDbUser} onChange={(e) => setNewSchedDbUser(e.target.value)} />
                     </div>
                     <div className="flex-1 space-y-2">
                       <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Password</label>
-                      <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-[10px] text-white outline-none focus:border-brand-primary/50" value={newSchedDbPass} onChange={(e) => setNewSchedDbPass(e.target.value)} />
+                      <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={newSchedDbPass} onChange={(e) => setNewSchedDbPass(e.target.value)} />
                     </div>
                   </div>
                   <div className="space-y-2 relative">
@@ -1475,7 +1606,7 @@ const Backups = () => {
                <input 
                 type="text" 
                 placeholder="Google Drive Parent ID" 
-                className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-[10px] text-brand-primary placeholder:text-slate-700 outline-none focus:border-brand-primary/50"
+                className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-brand-primary placeholder:text-slate-700 outline-none focus:border-brand-primary/50"
                 value={newSchedCloudFolderId}
                 onChange={(e) => setNewSchedCloudFolderId(parseFolderId(e.target.value))}
               />
@@ -1485,7 +1616,7 @@ const Backups = () => {
                   <input 
                     type="number" 
                     min="0"
-                    className="w-full bg-black/40 border border-brand-primary/10 rounded-lg px-3 py-2 text-[10px] text-brand-primary outline-none focus:border-brand-primary/50"
+                    className="w-full bg-black/40 border border-brand-primary/10 rounded-lg px-3 py-2 text-base md:text-[10px] text-brand-primary outline-none focus:border-brand-primary/50"
                     value={newSchedRetention}
                     onChange={(e) => setNewSchedRetention(parseInt(e.target.value) || 0)}
                   />
