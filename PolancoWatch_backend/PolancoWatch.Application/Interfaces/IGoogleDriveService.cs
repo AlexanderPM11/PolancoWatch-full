@@ -9,7 +9,7 @@ public interface IGoogleDriveService
     Task<string> GetOrCreateFolderAsync(string folderName, string? parentId = null);
     Task<bool> DeleteFileAsync(string fileId);
     Task<bool> IsAuthenticatedAsync();
-    string GetAuthUrl(string redirectUri);
+    string GetAuthUrl(string redirectUri, string state);
     Task<string> ExchangeCodeForRefreshTokenAsync(string code, string redirectUri);
     Task RevokeAuthAsync();
 }

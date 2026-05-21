@@ -375,7 +375,7 @@ const Backups = () => {
       // Stop polling after 3 minutes
       setTimeout(() => { clearInterval(poll); setConnectingDrive(false); }, 180000);
     } catch (error: any) {
-      showToast(error.response?.data || 'Failed to get authorization URL', 'error');
+      showToast(error.response?.data?.message || error.response?.data || 'Failed to get authorization URL', 'error');
       setConnectingDrive(false);
     }
   };

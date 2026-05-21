@@ -10,6 +10,8 @@ using PolancoWatch.Infrastructure.Data;
 using PolancoWatch.Application.Interfaces;
 using PolancoWatch.Application.DTOs;
 using PolancoWatch.Infrastructure.Helpers;
+using System.Security.Cryptography;
+using System.Text;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,18 +52,19 @@ public class BackupsController : ControllerBase
         {
             var redirectUri = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_REDIRECT_URI")
                            ?? $"{Request.Scheme}://{Request.Host}/api/backups/drive/callback";
-            var url = _driveService.GetAuthUrl(redirectUri);
+            var url = _driveService.GetAuthUrl(redirectUri, CreateDriveOAuthState());
             return Ok(new { url });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return BadRequest();
+            _logger.LogWarning(ex, "Failed to create Google Drive authorization URL.");
+            return BadRequest(new { message = ex.Message });
         }
     }
 
     [HttpGet("drive/callback")]
     [AllowAnonymous] // Google redirects here, no JWT
-    public async Task<IActionResult> DriveOAuthCallback([FromQuery] string? code, [FromQuery] string? error)
+    public async Task<IActionResult> DriveOAuthCallback([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? error)
     {
         if (!string.IsNullOrEmpty(error))
         {
@@ -71,6 +74,9 @@ public class BackupsController : ControllerBase
 
         if (string.IsNullOrEmpty(code))
             return BadRequest("No authorization code received.");
+
+        if (!ValidateDriveOAuthState(state))
+            return BadRequest("Invalid or expired OAuth state.");
 
         try
         {
@@ -167,6 +173,55 @@ public class BackupsController : ControllerBase
 </body>
 </html>", "text/html");
         }
+    }
+
+    private string CreateDriveOAuthState()
+    {
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+        var payload = $"{timestamp}.{nonce}";
+        var signature = SignDriveOAuthState(payload);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes($"{payload}.{signature}"));
+    }
+
+    private bool ValidateDriveOAuthState(string? state)
+    {
+        if (string.IsNullOrWhiteSpace(state)) return false;
+
+        try
+        {
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(state));
+            var parts = decoded.Split('.');
+            if (parts.Length != 3) return false;
+
+            var payload = $"{parts[0]}.{parts[1]}";
+            var expectedSignature = SignDriveOAuthState(payload);
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(parts[2]),
+                    Encoding.UTF8.GetBytes(expectedSignature)))
+            {
+                return false;
+            }
+
+            if (!long.TryParse(parts[0], out var timestamp)) return false;
+            var issuedAt = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+            return DateTimeOffset.UtcNow - issuedAt <= TimeSpan.FromMinutes(10);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string SignDriveOAuthState(string payload)
+    {
+        var key = Environment.GetEnvironmentVariable("JWT_KEY")
+                  ?? Environment.GetEnvironmentVariable("JWT_SECRET")
+                  ?? _configuration["Jwt:Key"]
+                  ?? throw new InvalidOperationException("JWT key is required to sign OAuth state.");
+
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
+        return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)));
     }
 
     [HttpGet("drive/status")]

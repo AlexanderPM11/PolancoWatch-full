@@ -195,10 +195,32 @@ export interface BackupService {
 
 export const backupService: BackupService = {
   getBackups: () => api.get('/api/backups').then(res => res.data),
-  triggerDatabaseBackup: (format = 'Zip', target?: string, syncToCloud = false, cloudFolderId?: string, backupName?: string, keepLocal = true, retentionCount = 0, sendTelegram = false) => 
-    api.post(`/api/backups/database?format=${format}${target ? `&target=${target}` : ''}&syncToCloud=${syncToCloud}${cloudFolderId ? `&cloudFolderId=${cloudFolderId}` : ''}${backupName ? `&backupName=${backupName}` : ''}&keepLocal=${keepLocal}&retentionCount=${retentionCount}&sendTelegram=${sendTelegram}`).then(res => res.data),
-  triggerVolumeBackup: (target: string, format = 'Zip', syncToCloud = false, cloudFolderId?: string, backupName?: string, keepLocal = true, retentionCount = 0, sendTelegram = false) => 
-    api.post(`/api/backups/volume?target=${target}&format=${format}&syncToCloud=${syncToCloud}${cloudFolderId ? `&cloudFolderId=${cloudFolderId}` : ''}${backupName ? `&backupName=${backupName}` : ''}&keepLocal=${keepLocal}&retentionCount=${retentionCount}&sendTelegram=${sendTelegram}`).then(res => res.data),
+  triggerDatabaseBackup: (format = 'Zip', target?: string, syncToCloud = false, cloudFolderId?: string, backupName?: string, keepLocal = true, retentionCount = 0, sendTelegram = false) => {
+    const params = new URLSearchParams({
+      format,
+      syncToCloud: String(syncToCloud),
+      keepLocal: String(keepLocal),
+      retentionCount: String(retentionCount),
+      sendTelegram: String(sendTelegram),
+    });
+    if (target) params.set('target', target);
+    if (cloudFolderId) params.set('cloudFolderId', cloudFolderId);
+    if (backupName) params.set('backupName', backupName);
+    return api.post(`/api/backups/database?${params.toString()}`).then(res => res.data);
+  },
+  triggerVolumeBackup: (target: string, format = 'Zip', syncToCloud = false, cloudFolderId?: string, backupName?: string, keepLocal = true, retentionCount = 0, sendTelegram = false) => {
+    const params = new URLSearchParams({
+      target,
+      format,
+      syncToCloud: String(syncToCloud),
+      keepLocal: String(keepLocal),
+      retentionCount: String(retentionCount),
+      sendTelegram: String(sendTelegram),
+    });
+    if (cloudFolderId) params.set('cloudFolderId', cloudFolderId);
+    if (backupName) params.set('backupName', backupName);
+    return api.post(`/api/backups/volume?${params.toString()}`).then(res => res.data);
+  },
   getSchedules: () => api.get<BackupSchedule[]>('/api/backups/schedules').then(res => res.data),
   createSchedule: (schedule) => api.post<BackupSchedule>('/api/backups/schedules', schedule).then(res => res.data),
   updateSchedule: (id, schedule) => api.put(`/api/backups/schedules/${id}`, schedule).then(res => res.data),

@@ -34,10 +34,12 @@ public class GoogleDriveService : IGoogleDriveService
 
     private GoogleAuthorizationCodeFlow CreateFlow()
     {
-        var clientId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID")
-                    ?? _configuration["GoogleDrive:ClientId"];
-        var clientSecret = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_SECRET")
-                       ?? _configuration["GoogleDrive:ClientSecret"];
+        var clientId = GetFirstConfiguredValue(
+            Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID"),
+            _configuration["GoogleDrive:ClientId"]);
+        var clientSecret = GetFirstConfiguredValue(
+            Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_SECRET"),
+            _configuration["GoogleDrive:ClientSecret"]);
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
             throw new Exception("Google Drive OAuth credentials not configured. Set GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET.");
@@ -53,14 +55,16 @@ public class GoogleDriveService : IGoogleDriveService
         });
     }
 
-    public string GetAuthUrl(string redirectUri)
+    public string GetAuthUrl(string redirectUri, string state)
     {
-        var clientId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID")
-                    ?? _configuration["GoogleDrive:ClientId"]
-                    ?? throw new Exception("GoogleDrive:ClientId / GOOGLE_DRIVE_CLIENT_ID not configured.");
+        var clientId = GetFirstConfiguredValue(
+            Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID"),
+            _configuration["GoogleDrive:ClientId"])
+            ?? throw new Exception("GoogleDrive:ClientId / GOOGLE_DRIVE_CLIENT_ID not configured.");
 
         var encodedRedirect = Uri.EscapeDataString(redirectUri);
         var scope = Uri.EscapeDataString("https://www.googleapis.com/auth/drive");
+        var encodedState = Uri.EscapeDataString(state);
 
         return $"https://accounts.google.com/o/oauth2/v2/auth" +
                $"?client_id={clientId}" +
@@ -68,6 +72,7 @@ public class GoogleDriveService : IGoogleDriveService
                $"&response_type=code" +
                $"&scope={scope}" +
                $"&access_type=offline" +
+               $"&state={encodedState}" +
                $"&prompt=consent";
     }
 
@@ -96,10 +101,12 @@ public class GoogleDriveService : IGoogleDriveService
     {
         if (_driveService != null) return _driveService;
 
-        var clientId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID")
-                    ?? _configuration["GoogleDrive:ClientId"];
-        var clientSecret = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_SECRET")
-                       ?? _configuration["GoogleDrive:ClientSecret"];
+        var clientId = GetFirstConfiguredValue(
+            Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID"),
+            _configuration["GoogleDrive:ClientId"]);
+        var clientSecret = GetFirstConfiguredValue(
+            Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_SECRET"),
+            _configuration["GoogleDrive:ClientSecret"]);
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
             throw new Exception("Google Drive OAuth credentials not configured. Set GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET.");
@@ -304,5 +311,18 @@ public class GoogleDriveService : IGoogleDriveService
         if (fileName.EndsWith(".zip")) return "application/zip";
         if (fileName.EndsWith(".tar.gz")) return "application/gzip";
         return "application/octet-stream";
+    }
+
+    private static string? GetFirstConfiguredValue(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
+        }
+
+        return null;
     }
 }
