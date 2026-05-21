@@ -32,8 +32,10 @@ public class BackupsController : ControllerBase
     private readonly IDockerClient _dockerClient;
     private readonly IGoogleDriveService _driveService;
     private readonly ILogger<BackupsController> _logger;
+    private readonly IBackgroundJobClient _backgroundJobs;
+    private readonly IRecurringJobManager _recurringJobs;
 
-    public BackupsController(ApplicationDbContext context, BackupManager backupManager, IBackupService backupService, IConfiguration configuration, IDockerClient dockerClient, IGoogleDriveService driveService, ILogger<BackupsController> logger)
+    public BackupsController(ApplicationDbContext context, BackupManager backupManager, IBackupService backupService, IConfiguration configuration, IDockerClient dockerClient, IGoogleDriveService driveService, ILogger<BackupsController> logger, IBackgroundJobClient backgroundJobs, IRecurringJobManager recurringJobs)
     {
         _context = context;
         _backupManager = backupManager;
@@ -42,6 +44,8 @@ public class BackupsController : ControllerBase
         _dockerClient = dockerClient;
         _driveService = driveService;
         _logger = logger;
+        _backgroundJobs = backgroundJobs;
+        _recurringJobs = recurringJobs;
     }
 
     // --- Google Drive OAuth ---
@@ -333,7 +337,7 @@ public class BackupsController : ControllerBase
         try
         {
             var username = User.Identity?.Name ?? "admin";
-            var jobId = BackgroundJob.Enqueue<BackupManager>(manager => 
+            var jobId = _backgroundJobs.Enqueue<BackupManager>(manager => 
                 manager.RunBackupAsync(BackupType.Database, target, format, syncToCloud, cloudFolderId, backupName, keepLocal, retentionCount, sendTelegram, username));
             
             return Accepted(new { message = "Database backup queued successfully.", jobId });
@@ -350,7 +354,7 @@ public class BackupsController : ControllerBase
         try
         {
             var username = User.Identity?.Name ?? "admin";
-            var jobId = BackgroundJob.Enqueue<BackupManager>(manager => 
+            var jobId = _backgroundJobs.Enqueue<BackupManager>(manager => 
                 manager.RunBackupAsync(BackupType.Volume, target, format, syncToCloud, cloudFolderId, backupName, keepLocal, retentionCount, sendTelegram, username));
             
             return Accepted(new { message = "Volume backup queued successfully.", jobId });
@@ -374,13 +378,12 @@ public class BackupsController : ControllerBase
         schedule.NextRun = ScheduleHelper.CalculateNextRun(schedule, DateTimeOffset.UtcNow);
         _context.BackupSchedules.Add(schedule);
         await _context.SaveChangesAsync();
-        
         if (schedule.IsActive)
         {
-            RecurringJob.AddOrUpdate<BackupManager>(
+            _recurringJobs.AddOrUpdate<BackupManager>(
                 $"backup_{schedule.Id}", 
                 manager => manager.RunBackupAsync(schedule.Type, schedule.Target, schedule.Format, schedule.SyncToCloud, schedule.CloudFolderId, null, schedule.KeepLocal, schedule.RetentionCount, schedule.SendTelegram, "system"), 
-                schedule.CronExpression);
+                ScheduleHelper.GetCronFromSchedule(schedule));
         }
         
         return CreatedAtAction(nameof(GetSchedules), new { id = schedule.Id }, schedule);
@@ -413,17 +416,16 @@ public class BackupsController : ControllerBase
         existing.NextRun = ScheduleHelper.CalculateNextRun(existing, DateTimeOffset.UtcNow);
 
         await _context.SaveChangesAsync();
-        
         if (existing.IsActive)
         {
-            RecurringJob.AddOrUpdate<BackupManager>(
+            _recurringJobs.AddOrUpdate<BackupManager>(
                 $"backup_{existing.Id}", 
                 manager => manager.RunBackupAsync(existing.Type, existing.Target, existing.Format, existing.SyncToCloud, existing.CloudFolderId, null, existing.KeepLocal, existing.RetentionCount, existing.SendTelegram, "system"), 
-                existing.CronExpression);
+                ScheduleHelper.GetCronFromSchedule(existing));
         }
         else
         {
-            RecurringJob.RemoveIfExists($"backup_{existing.Id}");
+            _recurringJobs.RemoveIfExists($"backup_{existing.Id}");
         }
         
         return NoContent();
@@ -435,7 +437,7 @@ public class BackupsController : ControllerBase
         var schedule = await _context.BackupSchedules.FindAsync(id);
         if (schedule == null) return NotFound();
 
-        RecurringJob.RemoveIfExists($"backup_{id}");
+        _recurringJobs.RemoveIfExists($"backup_{id}");
 
         _context.BackupSchedules.Remove(schedule);
         await _context.SaveChangesAsync();
@@ -451,7 +453,7 @@ public class BackupsController : ControllerBase
         try
         {
             var username = User.Identity?.Name ?? "admin";
-            var jobId = BackgroundJob.Enqueue<BackupManager>(manager => 
+            var jobId = _backgroundJobs.Enqueue<BackupManager>(manager => 
                 manager.RunBackupAsync(schedule.Type, schedule.Target, schedule.Format, schedule.SyncToCloud, schedule.CloudFolderId, schedule.Name, schedule.KeepLocal, schedule.RetentionCount, schedule.SendTelegram, username));
                 
             return Accepted(new { message = "Backup initiated from schedule.", jobId });

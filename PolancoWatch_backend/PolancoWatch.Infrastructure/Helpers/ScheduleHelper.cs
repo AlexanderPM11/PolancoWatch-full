@@ -53,4 +53,22 @@ public static class ScheduleHelper
         
         return fromUtc.AddMinutes(schedule.IntervalMinutes > 0 ? schedule.IntervalMinutes : 1440);
     }
+
+    public static string GetCronFromSchedule(BackupSchedule schedule)
+    {
+        if (schedule.UseCron && !string.IsNullOrEmpty(schedule.CronExpression))
+        {
+            return schedule.CronExpression;
+        }
+
+        int intervalMinutes = schedule.IntervalMinutes;
+        if (intervalMinutes <= 0) return "0 0 31 2 *"; // Never (Feb 31)
+        if (intervalMinutes < 60) return $"*/{intervalMinutes} * * * *";
+        if (intervalMinutes == 60) return "0 * * * *";
+        if (intervalMinutes < 1440) return $"0 */{intervalMinutes / 60} * * *";
+        if (intervalMinutes == 1440) return "0 0 * * *"; // Daily
+        if (intervalMinutes == 10080) return "0 0 * * 0"; // Weekly
+        if (intervalMinutes == 43200) return "0 0 1 * *"; // Monthly
+        return "0 0 * * *"; // Default
+    }
 }

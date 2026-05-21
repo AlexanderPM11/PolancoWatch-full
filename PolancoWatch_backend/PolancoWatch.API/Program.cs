@@ -272,13 +272,14 @@ using (var scope = app.Services.CreateScope())
     }
 
     // Schedule Recurring Jobs for Hangfire
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
     var schedules = context.BackupSchedules.Where(s => s.IsActive).ToList();
     foreach (var schedule in schedules)
     {
-        RecurringJob.AddOrUpdate<BackupManager>(
+        recurringJobManager.AddOrUpdate<BackupManager>(
             $"backup_{schedule.Id}", 
             manager => manager.RunBackupAsync(schedule.Type, schedule.Target, schedule.Format, schedule.SyncToCloud, schedule.CloudFolderId, null, schedule.KeepLocal, schedule.RetentionCount, schedule.SendTelegram, "system"), 
-            schedule.CronExpression);
+            PolancoWatch.Infrastructure.Helpers.ScheduleHelper.GetCronFromSchedule(schedule));
     }
 }
 

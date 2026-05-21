@@ -19,7 +19,8 @@ import {
   MessageCircle,
   X,
   History as LucideHistory,
-  Play
+  Play,
+  Activity
 } from 'lucide-react';
 import { backupService, type BackupSchedule } from '../services/api';
 import { backupSignalRService } from '../services/backupSignalR';
@@ -657,6 +658,15 @@ const Backups = () => {
           </div>
         </div>
         <div className="flex gap-3">
+          <a 
+            href="/hangfire"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white/5 border border-brand-primary/20 text-brand-primary px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-primary/10 transition-all flex items-center gap-2"
+          >
+            <Activity size={14} />
+            Hangfire
+          </a>
           <button 
             onClick={() => setIsScheduleModalOpen(true)}
             className="bg-white/5 border border-white/10 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
