@@ -108,19 +108,40 @@ public class BackupService : IBackupService
 
     private async Task<string?> GetVolumeNameFromPathAsync(string path)
     {
+        if (string.IsNullOrWhiteSpace(path)) return null;
+        
+        string normalizedPath = path.TrimEnd('/', '\\');
+        
         try
         {
             var volumes = await _dockerClient.Volumes.ListAsync();
-            foreach (var volume in volumes.Volumes)
+            if (volumes?.Volumes != null)
             {
-                if (path.Equals(volume.Name, StringComparison.OrdinalIgnoreCase) || 
-                    path.Equals(volume.Mountpoint, StringComparison.OrdinalIgnoreCase))
+                foreach (var volume in volumes.Volumes)
                 {
-                    return volume.Name;
+                    string volumeMountpoint = volume.Mountpoint?.TrimEnd('/', '\\') ?? string.Empty;
+                    if (normalizedPath.Equals(volume.Name, StringComparison.OrdinalIgnoreCase) || 
+                        normalizedPath.Equals(volumeMountpoint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return volume.Name;
+                    }
                 }
             }
         }
         catch { /* Fallback */ }
+        
+        // Fallback: If Docker API fails (e.g. proxy issues) but path is clearly a docker volume
+        if (normalizedPath.StartsWith("/var/lib/docker/volumes/") || normalizedPath.StartsWith(@"C:\var\lib\docker\volumes\"))
+        {
+            var parts = normalizedPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            // parts for /var/lib/docker/volumes/my_vol/_data -> ["var", "lib", "docker", "volumes", "my_vol", "_data"]
+            if (parts.Length >= 5)
+            {
+                // The volume name is usually the 5th element (index 4)
+                return parts[4];
+            }
+        }
+
         return null;
     }
 
