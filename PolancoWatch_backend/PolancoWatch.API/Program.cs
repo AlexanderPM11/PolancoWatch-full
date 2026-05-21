@@ -249,19 +249,29 @@ using (var scope = app.Services.CreateScope())
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 1, 
+    RequireHeaderSymmetry = false
 };
-// In production, restrict to only the reverse proxy IP ranges
-// KnownNetworks / KnownProxies are empty by default when explicitly set, so wildcards are disabled
+
 if (app.Environment.IsProduction())
 {
-    // Accept X-Forwarded-For only from localhost reverse proxy (e.g. Nginx/Traefik in Docker network)
     forwardedHeadersOptions.KnownNetworks.Clear();
     forwardedHeadersOptions.KnownProxies.Clear();
-    var proxyNetworkCidr = Environment.GetEnvironmentVariable("TRUSTED_PROXY_NETWORK") ?? "172.0.0.0/8";
-    var cidrParts = proxyNetworkCidr.Split('/');
-    if (cidrParts.Length == 2 && System.Net.IPAddress.TryParse(cidrParts[0], out var proxyIp) && int.TryParse(cidrParts[1], out var prefixLength))
+    
+    var proxyNetworkCidr = Environment.GetEnvironmentVariable("TRUSTED_PROXY_NETWORK");
+    if (!string.IsNullOrWhiteSpace(proxyNetworkCidr))
     {
-        forwardedHeadersOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(proxyIp, prefixLength));
+        var cidrParts = proxyNetworkCidr.Split('/');
+        if (cidrParts.Length == 2 && System.Net.IPAddress.TryParse(cidrParts[0], out var proxyIp) && int.TryParse(cidrParts[1], out var prefixLength))
+        {
+            forwardedHeadersOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(proxyIp, prefixLength));
+        }
+    }
+    else
+    {
+        // Limitar a las subredes privadas más comunes de Docker en lugar de todo 172.0.0.0/8
+        forwardedHeadersOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
+        forwardedHeadersOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("127.0.0.1"), 8));
     }
 }
 app.UseForwardedHeaders(forwardedHeadersOptions);
