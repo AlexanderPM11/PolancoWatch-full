@@ -72,7 +72,7 @@ public class AuthController : ControllerBase
         return Ok(new { 
             message = result.Message,
             token = result.NewToken,
-            username = request.NewUsername ?? username
+            username = username
         });
     }
 
