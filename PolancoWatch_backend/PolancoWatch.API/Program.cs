@@ -18,12 +18,12 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+var enableSwagger = builder.Configuration.GetValue<bool>("ENABLE_SWAGGER");
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-// VULN-03: Only add Swagger in non-production environments
-if (!builder.Environment.IsProduction())
+if (!builder.Environment.IsProduction() || enableSwagger)
 {
     builder.Services.AddSwaggerGen();
 }
@@ -254,8 +254,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// VULN-03: Only expose Swagger in non-production environments
-if (!app.Environment.IsProduction())
+if (!app.Environment.IsProduction() || enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -268,7 +267,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (app.Environment.IsProduction())
+if (app.Environment.IsProduction() && !enableSwagger)
 {
     app.MapGet("/", () => Results.Ok(new
     {
