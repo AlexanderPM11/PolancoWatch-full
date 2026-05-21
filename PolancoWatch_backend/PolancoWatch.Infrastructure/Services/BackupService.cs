@@ -136,13 +136,14 @@ public class BackupService : IBackupService
         }
 
         string fileName = Path.GetFileName(destinationFilePath);
+        string safeFileName = ShellQuote(fileName);
         
         // Ensure 'alpine' image exists
         await EnsureImageExistsAsync("alpine:latest");
 
         string cmd = format == BackupFormat.Zip 
-            ? $"apk add --no-cache zip && cd /data && zip -r -9 /backup/{fileName} ." 
-            : $"tar czf /backup/{fileName} -C /data .";
+            ? $"apk add --no-cache zip && cd /data && zip -r -9 /backup/{safeFileName} ." 
+            : $"tar czf /backup/{safeFileName} -C /data .";
 
         var containerConfig = new Config
         {

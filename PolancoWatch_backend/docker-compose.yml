@@ -30,12 +30,7 @@ services:
       - GOOGLE_DRIVE_REDIRECT_URI=${GOOGLE_DRIVE_REDIRECT_URI:-}
       - GOOGLE_DRIVE_DEFAULT_FOLDER_ID=${GOOGLE_DRIVE_DEFAULT_FOLDER_ID:-}
     
-    # --- DOKPLOY METRICS MAGIC ---
-    # This allows the container to see all processes on the real host (VPS)
-    pid: "host"       
-    
-    # This provides access to advanced hardware metrics without Docker blocking it
-    privileged: true  
+
     
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
