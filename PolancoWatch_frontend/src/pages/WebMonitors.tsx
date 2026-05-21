@@ -53,125 +53,129 @@ const MonitorRow = ({ monitor, confirmDelete, onEdit, onToggleNotify, onToggleAc
     const isSlow = monitor.status === 3;
 
     return (
-        <div className="flex items-center gap-4 py-3 px-6 border-b border-white/5 hover:bg-white/2 transition-all group">
-            <div 
-                className="w-8 flex justify-center cursor-help"
-                title={!monitor.isActive ? 'Monitor Disabled' : monitor.lastCheckTime ? `Last Check: ${new Date(monitor.lastCheckTime).toLocaleString('es-DO', { 
-                    timeZone: 'America/Santo_Domingo',
-                    dateStyle: 'medium',
-                    timeStyle: 'medium'
-                })}` : 'Never Checked'}
-            >
-                {!monitor.isActive ? (
-                   <div className="w-2.5 h-2.5 rounded-full bg-slate-600 shadow-[0_0_8px_rgba(71,85,105,0.2)]"></div>
-                ) : isChecking ? (
-                    <RefreshCw size={14} className="text-amber-400 animate-spin" />
-                ) : isSlow ? (
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)] animate-pulse"></div>
-                ) : (
-                    <div className={`w-2.5 h-2.5 rounded-full ${isUp ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.4)] animate-pulse' : 'bg-rose-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]'}`}></div>
-                )}
-            </div>
-
-            {/* Identity & URL */}
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-white truncate group-hover:text-brand-primary transition-colors">
-                        {monitor.name}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-500">
-                        {formatInterval(monitor.checkIntervalSeconds)}
-                    </span>
-                </div>
-                <p className="text-[10px] font-medium text-slate-500 truncate uppercase tracking-wider mt-0.5">
-                    {monitor.url.replace(/^https?:\/\//, '')}
-                </p>
-                <div className="flex items-center gap-3 text-[8px] font-black uppercase tracking-widest text-slate-600 mt-1.5">
-                    <div className="flex items-center gap-1">
-                        <span className="text-slate-700">Last:</span>
-                        <span>
-                            {monitor.lastCheckTime 
-                                ? new Date(monitor.lastCheckTime).toLocaleTimeString('es-DO', { hour12: true, hour: 'numeric', minute: '2-digit' }) 
-                                : 'Never'}
-                        </span>
-                    </div>
-                    {monitor.isActive && monitor.lastCheckTime && (
-                        <div className="flex items-center gap-1">
-                            <span className="text-slate-700">Next:</span>
-                            <span>
-                                {new Date(new Date(monitor.lastCheckTime).getTime() + (monitor.checkIntervalSeconds * 1000)).toLocaleTimeString('es-DO', { 
-                                    hour12: true, 
-                                    hour: 'numeric', 
-                                    minute: '2-digit' 
-                                })}
-                            </span>
-                        </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 px-4 md:px-6 border-b border-white/5 hover:bg-white/2 transition-all group">
+            <div className="flex items-start md:items-center gap-4 min-w-0 flex-1">
+                <div 
+                    className="w-8 flex justify-center pt-1 md:pt-0 cursor-help shrink-0"
+                    title={!monitor.isActive ? 'Monitor Disabled' : monitor.lastCheckTime ? `Last Check: ${new Date(monitor.lastCheckTime).toLocaleString('es-DO', { 
+                        timeZone: 'America/Santo_Domingo',
+                        dateStyle: 'medium',
+                        timeStyle: 'medium'
+                    })}` : 'Never Checked'}
+                >
+                    {!monitor.isActive ? (
+                       <div className="w-2.5 h-2.5 rounded-full bg-slate-600 shadow-[0_0_8px_rgba(71,85,105,0.2)]"></div>
+                    ) : isChecking ? (
+                        <RefreshCw size={14} className="text-amber-400 animate-spin" />
+                    ) : isSlow ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)] animate-pulse"></div>
+                    ) : (
+                        <div className={`w-2.5 h-2.5 rounded-full ${isUp ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.4)] animate-pulse' : 'bg-rose-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]'}`}></div>
                     )}
                 </div>
+
+                {/* Identity & URL */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-white truncate group-hover:text-brand-primary transition-colors">
+                            {monitor.name}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-500 shrink-0">
+                            {formatInterval(monitor.checkIntervalSeconds)}
+                        </span>
+                    </div>
+                    <p className="text-[10px] font-medium text-slate-500 truncate uppercase tracking-wider mt-0.5">
+                        {monitor.url.replace(/^https?:\/\//, '')}
+                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[8px] font-black uppercase tracking-widest text-slate-600 mt-2">
+                        <div className="flex items-center gap-1">
+                            <span className="text-slate-700">Last:</span>
+                            <span>
+                                {monitor.lastCheckTime 
+                                    ? new Date(monitor.lastCheckTime).toLocaleTimeString('es-DO', { hour12: true, hour: 'numeric', minute: '2-digit' }) 
+                                    : 'Never'}
+                            </span>
+                        </div>
+                        {monitor.isActive && monitor.lastCheckTime && (
+                            <div className="flex items-center gap-1">
+                                <span className="text-slate-700">Next:</span>
+                                <span>
+                                    {new Date(new Date(monitor.lastCheckTime).getTime() + (monitor.checkIntervalSeconds * 1000)).toLocaleTimeString('es-DO', { 
+                                        hour12: true, 
+                                        hour: 'numeric', 
+                                        minute: '2-digit' 
+                                    })}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* Today's Status Percentages - Compact */}
-            <div className="hidden lg:flex items-center gap-2 px-4 min-w-[200px]">
-                <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 min-w-[55px]">
-                    <span className="text-[11px] font-black text-emerald-400">
-                        {todayStat ? todayStat.upPercentage.toFixed(0) : '100'}%
-                    </span>
+            <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-transparent">
+                {/* Today's Status Percentages - Compact */}
+                <div className="hidden lg:flex items-center gap-2 px-4 min-w-[200px]">
+                    <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 min-w-[55px]">
+                        <span className="text-[11px] font-black text-emerald-400">
+                            {todayStat ? todayStat.upPercentage.toFixed(0) : '100'}%
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-amber-500/5 border border-amber-500/10 min-w-[55px]">
+                        <span className="text-[11px] font-black text-amber-400">
+                            {todayStat ? todayStat.slowPercentage.toFixed(0) : '0'}%
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-rose-500/5 border border-rose-500/10 min-w-[55px]">
+                        <span className="text-[11px] font-black text-rose-400">
+                            {todayStat ? todayStat.downPercentage.toFixed(0) : '0'}%
+                        </span>
+                    </div>
                 </div>
-                <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-amber-500/5 border border-amber-500/10 min-w-[55px]">
-                    <span className="text-[11px] font-black text-amber-400">
-                        {todayStat ? todayStat.slowPercentage.toFixed(0) : '0'}%
-                    </span>
-                </div>
-                <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-rose-500/5 border border-rose-500/10 min-w-[55px]">
-                    <span className="text-[11px] font-black text-rose-400">
-                        {todayStat ? todayStat.downPercentage.toFixed(0) : '0'}%
-                    </span>
-                </div>
-            </div>
 
-            {/* Actions - Smaller Buttons */}
-            <div className="flex items-center gap-1.5">
-                <Link
-                    to={`/web-monitors/${monitor.id}`}
-                    className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-brand-primary/10 hover:border-brand-primary/30 hover:text-brand-primary transition-all group"
-                    title="Ver Detalles"
-                >
-                    <Eye className="w-3.5 h-3.5" />
-                </Link>
-                <button 
-                    onClick={() => onToggleActive(monitor.id)}
-                    className={`p-2 rounded-xl border transition-all ${
-                        monitor.isActive 
-                        ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10' 
-                        : 'bg-slate-500/5 border-slate-500/10 text-slate-500 hover:bg-slate-500/10'
-                    }`}
-                    title={monitor.isActive ? "Desactivar Monitoreo" : "Activar Monitoreo"}
-                >
-                    <Power className="w-3.5 h-3.5" />
-                </button>
-                <button 
-                    onClick={() => onToggleNotify(monitor.id)}
-                    className={`p-2 rounded-xl border transition-all ${
-                        monitor.notify 
-                        ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10' 
-                        : 'bg-rose-500/5 border-rose-500/10 text-rose-400 hover:bg-rose-500/10'
-                    }`}
-                    title={monitor.notify ? "Notificaciones Activas" : "Notificaciones Silenciadas"}
-                >
-                    {monitor.notify ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-                </button>
-                <button 
-                    onClick={() => onEdit(monitor)}
-                    className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white transition-all"
-                >
-                    <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button 
-                    onClick={() => confirmDelete(monitor.id)}
-                    className="p-2 rounded-xl bg-white/5 border border-white/10 text-rose-500/50 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
-                >
-                    <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {/* Actions - Smaller Buttons */}
+                <div className="flex items-center gap-2">
+                    <Link
+                        to={`/web-monitors/${monitor.id}`}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-brand-primary/10 hover:border-brand-primary/30 hover:text-brand-primary transition-all group"
+                        title="Ver Detalles"
+                    >
+                        <Eye className="w-4 h-4" />
+                    </Link>
+                    <button 
+                        onClick={() => onToggleActive(monitor.id)}
+                        className={`p-2 rounded-xl border transition-all ${
+                            monitor.isActive 
+                            ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10' 
+                            : 'bg-slate-500/5 border-slate-500/10 text-slate-500 hover:bg-slate-500/10'
+                        }`}
+                        title={monitor.isActive ? "Desactivar Monitoreo" : "Activar Monitoreo"}
+                    >
+                        <Power className="w-4 h-4" />
+                    </button>
+                    <button 
+                        onClick={() => onToggleNotify(monitor.id)}
+                        className={`p-2 rounded-xl border transition-all ${
+                            monitor.notify 
+                            ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10' 
+                            : 'bg-rose-500/5 border-rose-500/10 text-rose-400 hover:bg-rose-500/10'
+                        }`}
+                        title={monitor.notify ? "Notificaciones Activas" : "Notificaciones Silenciadas"}
+                    >
+                        {monitor.notify ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                    </button>
+                    <button 
+                        onClick={() => onEdit(monitor)}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                        <Pencil className="w-4 h-4" />
+                    </button>
+                    <button 
+                        onClick={() => confirmDelete(monitor.id)}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-rose-500/50 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
         </div>
     );

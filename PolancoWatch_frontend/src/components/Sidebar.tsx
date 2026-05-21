@@ -78,7 +78,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {/* Mobile Toggle Button */}
             <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden fixed top-6 left-6 z-100 p-3 rounded-xl bg-obsidian-900 border border-white/10 text-brand-primary shadow-2xl transition-all active:scale-95"
+                className="lg:hidden fixed top-6 left-6 z-[100] p-3 rounded-xl bg-obsidian-900 border border-white/10 text-brand-primary shadow-2xl transition-all active:scale-95"
             >
                 {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -86,13 +86,13 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {/* Mobile Backdrop */}
             {mobileOpen && (
                 <div 
-                    className="fixed inset-0 bg-obsidian-950/80 backdrop-blur-md z-60 lg:hidden animate-fade-in"
+                    className="fixed inset-0 bg-obsidian-950/80 backdrop-blur-md z-[60] lg:hidden animate-fade-in"
                     onClick={() => setMobileOpen(false)}
                 />
             )}
 
             <aside 
-                className={`fixed left-0 top-0 h-screen bg-obsidian-900/60 backdrop-blur-3xl border-r border-white/5 transition-all duration-500 z-70 flex flex-col ${
+                className={`fixed left-0 top-0 h-screen bg-obsidian-900/60 backdrop-blur-3xl border-r border-white/5 transition-all duration-500 z-[70] flex flex-col ${
                     collapsed ? 'w-20' : 'w-72'
                 } ${
                     mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

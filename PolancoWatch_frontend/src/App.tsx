@@ -32,7 +32,7 @@ function App() {
       </div>
       
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-500 relative z-10 w-full overflow-x-hidden ${collapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+      <div className={`flex-1 transition-all duration-500 relative z-10 w-full overflow-x-hidden pt-24 lg:pt-0 ${collapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
         {children}
       </div>
     </div>
