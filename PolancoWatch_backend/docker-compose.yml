@@ -51,6 +51,8 @@ services:
       - POST=1
       - EXEC=1
       - VOLUMES=1
+      - IMAGES=1
+      - DELETE=1
     restart: unless-stopped
 
   polancowatch-frontend:
