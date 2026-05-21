@@ -24,7 +24,28 @@ public class AuthController : ControllerBase
         var response = await _authService.AuthenticateAsync(request);
         if (response == null) return Unauthorized(new { message = "Invalid username or password" });
 
+        Response.Cookies.Append("jwt", response.Token, new CookieOptions 
+        { 
+            HttpOnly = true, 
+            Secure = true, 
+            SameSite = SameSiteMode.Strict, 
+            Expires = DateTime.UtcNow.AddHours(8) 
+        });
+
         return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Append("jwt", "", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTime.UtcNow.AddDays(-1)
+        });
+        return Ok(new { message = "Logged out successfully" });
     }
 
     [Authorize]
@@ -36,6 +57,17 @@ public class AuthController : ControllerBase
 
         var result = await _authService.UpdateProfileAsync(username, request);
         if (!result.Success) return BadRequest(new { message = result.Message });
+
+        if (!string.IsNullOrEmpty(result.NewToken))
+        {
+            Response.Cookies.Append("jwt", result.NewToken, new CookieOptions 
+            { 
+                HttpOnly = true, 
+                Secure = true, 
+                SameSite = SameSiteMode.Strict, 
+                Expires = DateTime.UtcNow.AddHours(8) 
+            });
+        }
 
         return Ok(new { 
             message = result.Message,

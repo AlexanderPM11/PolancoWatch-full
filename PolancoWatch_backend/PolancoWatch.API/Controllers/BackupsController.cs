@@ -75,14 +75,14 @@ public class BackupsController : ControllerBase
         if (string.IsNullOrEmpty(code))
             return BadRequest("No authorization code received.");
 
-        if (!ValidateDriveOAuthState(state))
+        if (!ValidateDriveOAuthState(state, out var username))
             return BadRequest("Invalid or expired OAuth state.");
 
         try
         {
             var redirectUri = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_REDIRECT_URI")
                            ?? $"{Request.Scheme}://{Request.Host}/api/backups/drive/callback";
-            var refreshToken = await _driveService.ExchangeCodeForRefreshTokenAsync(code, redirectUri);
+            var refreshToken = await _driveService.ExchangeCodeForRefreshTokenAsync(code, redirectUri, username);
             var appUrl = _configuration["APP_URL"] ?? "http://localhost:5246";
 
             return Content($@"
@@ -179,25 +179,28 @@ public class BackupsController : ControllerBase
     {
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
         var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
-        var payload = $"{timestamp}.{nonce}";
+        var username = User.Identity?.Name ?? "admin";
+        var payload = $"{timestamp}.{nonce}.{username}";
         var signature = SignDriveOAuthState(payload);
         return Convert.ToBase64String(Encoding.UTF8.GetBytes($"{payload}.{signature}"));
     }
 
-    private bool ValidateDriveOAuthState(string? state)
+    private bool ValidateDriveOAuthState(string? state, out string username)
     {
+        username = "admin";
         if (string.IsNullOrWhiteSpace(state)) return false;
 
         try
         {
             var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(state));
             var parts = decoded.Split('.');
-            if (parts.Length != 3) return false;
+            if (parts.Length != 4) return false;
 
-            var payload = $"{parts[0]}.{parts[1]}";
+            var payload = $"{parts[0]}.{parts[1]}.{parts[2]}";
+            username = parts[2];
             var expectedSignature = SignDriveOAuthState(payload);
             if (!CryptographicOperations.FixedTimeEquals(
-                    Encoding.UTF8.GetBytes(parts[2]),
+                    Encoding.UTF8.GetBytes(parts[3]),
                     Encoding.UTF8.GetBytes(expectedSignature)))
             {
                 return false;
@@ -227,14 +230,16 @@ public class BackupsController : ControllerBase
     [HttpGet("drive/status")]
     public async Task<IActionResult> GetDriveStatus()
     {
-        var isAuthenticated = await _driveService.IsAuthenticatedAsync();
+        var username = User.Identity?.Name ?? "admin";
+        var isAuthenticated = await _driveService.IsAuthenticatedAsync(username);
         return Ok(new { isAuthenticated });
     }
 
     [HttpDelete("drive/auth")]
     public async Task<IActionResult> RevokeDriveAuth()
     {
-        await _driveService.RevokeAuthAsync();
+        var username = User.Identity?.Name ?? "admin";
+        await _driveService.RevokeAuthAsync(username);
         return Ok(new { message = "Google Drive authorization revoked." });
     }
 
@@ -326,11 +331,12 @@ public class BackupsController : ControllerBase
     {
         try
         {
+            var username = User.Identity?.Name ?? "admin";
             _ = Task.Run(async () => 
             {
                 try 
                 {
-                    await _backupManager.RunBackupAsync(BackupType.Database, target, format, syncToCloud, cloudFolderId, backupName, keepLocal, retentionCount, sendTelegram);
+                    await _backupManager.RunBackupAsync(BackupType.Database, target, format, syncToCloud, cloudFolderId, backupName, keepLocal, retentionCount, sendTelegram, username);
                 } 
                 catch (Exception) { /* Handled internally by BackupManager logging */ }
             });
@@ -347,11 +353,12 @@ public class BackupsController : ControllerBase
     {
         try
         {
+            var username = User.Identity?.Name ?? "admin";
             _ = Task.Run(async () => 
             {
                 try 
                 {
-                    await _backupManager.RunBackupAsync(BackupType.Volume, target, format, syncToCloud, cloudFolderId, backupName, keepLocal, retentionCount, sendTelegram);
+                    await _backupManager.RunBackupAsync(BackupType.Volume, target, format, syncToCloud, cloudFolderId, backupName, keepLocal, retentionCount, sendTelegram, username);
                 }
                 catch (Exception) { /* Handled internally by BackupManager logging */ }
             });
@@ -429,11 +436,12 @@ public class BackupsController : ControllerBase
 
         try
         {
+            var username = User.Identity?.Name ?? "admin";
             _ = Task.Run(async () => 
             {
                 try 
                 {
-                    await _backupManager.RunBackupAsync(schedule.Type, schedule.Target, schedule.Format, schedule.SyncToCloud, schedule.CloudFolderId, schedule.Name, schedule.KeepLocal, schedule.RetentionCount, schedule.SendTelegram);
+                    await _backupManager.RunBackupAsync(schedule.Type, schedule.Target, schedule.Format, schedule.SyncToCloud, schedule.CloudFolderId, schedule.Name, schedule.KeepLocal, schedule.RetentionCount, schedule.SendTelegram, username);
                 }
                 catch (Exception) { /* Handled internally */ }
             });

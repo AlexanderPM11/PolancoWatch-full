@@ -4,44 +4,17 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5246';
 
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 const clearAuthState = () => {
-  localStorage.removeItem('token');
   localStorage.removeItem('username');
 };
 
-const isTokenValid = (token: string | null) => {
-  if (!token) return false;
-
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(base64.length + ((4 - base64.length % 4) % 4), '=');
-    const payload = JSON.parse(atob(padded));
-    if (!payload.exp) return true;
-    return payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-};
-
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token && !isTokenValid(token)) {
-    clearAuthState();
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
-    }
-    return config;
-  }
-
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -61,12 +34,15 @@ api.interceptors.response.use((response) => response, (error) => {
 export const authService = {
   login: async (username: string, password: string) => {
     const response = await api.post('/api/auth/login', { username, password });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    if (response.data.username) {
+      localStorage.setItem('username', response.data.username);
     }
     return response.data;
   },
-  logout: () => {
+  logout: async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch (e) {}
     clearAuthState();
   },
   forgotPassword: async (email?: string, username?: string) => {
@@ -78,13 +54,10 @@ export const authService = {
     return response.data;
   },
   isAuthenticated: () => {
-    return isTokenValid(localStorage.getItem('token'));
+    return !!localStorage.getItem('username');
   },
   updateProfile: async (currentPassword: string, newUsername?: string, newPassword?: string) => {
     const response = await api.post('/api/auth/profile', { currentPassword, newUsername, newPassword });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-    }
     if (response.data.username) {
         localStorage.setItem('username', response.data.username);
     }

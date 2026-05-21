@@ -29,14 +29,25 @@ services:
       - GOOGLE_DRIVE_REFRESH_TOKEN=${GOOGLE_DRIVE_REFRESH_TOKEN:-}
       - GOOGLE_DRIVE_REDIRECT_URI=${GOOGLE_DRIVE_REDIRECT_URI:-}
       - GOOGLE_DRIVE_DEFAULT_FOLDER_ID=${GOOGLE_DRIVE_DEFAULT_FOLDER_ID:-}
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
     
 
     
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - polancowatch_db_data:/app/data
       - polancowatch_backups:/app/backups
     
+    restart: unless-stopped
+    depends_on:
+      - docker-socket-proxy
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - POST=1
     restart: unless-stopped
 
   polancowatch-frontend:

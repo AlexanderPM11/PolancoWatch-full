@@ -37,7 +37,7 @@ public class BackupManager
         _logger = logger;
     }
 
-    public async Task<Backup> RunBackupAsync(BackupType type, string? target, BackupFormat format, bool syncToCloud = false, string? cloudFolderId = null, string? backupName = null, bool keepLocal = true, int retentionCount = 0, bool sendTelegram = false)
+    public async Task<Backup> RunBackupAsync(BackupType type, string? target, BackupFormat format, bool syncToCloud = false, string? cloudFolderId = null, string? backupName = null, bool keepLocal = true, int retentionCount = 0, bool sendTelegram = false, string username = "admin")
     {
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -117,10 +117,10 @@ public class BackupManager
                     string? targetFolderId = cloudFolderId;
                     if (!string.IsNullOrEmpty(cloudFolderId))
                     {
-                        targetFolderId = await _googleDriveService.GetOrCreateFolderAsync(backup.Name, cloudFolderId);
+                        targetFolderId = await _googleDriveService.GetOrCreateFolderAsync(backup.Name, username, cloudFolderId);
                     }
 
-                    var (fileId, link) = await _googleDriveService.UploadFileAsync(filePath, Path.GetFileName(filePath), targetFolderId);
+                    var (fileId, link) = await _googleDriveService.UploadFileAsync(filePath, Path.GetFileName(filePath), username, targetFolderId);
                     backup.CloudFileId = fileId;
                     backup.CloudLink = link;
                     backup.CloudSyncStatus = CloudSyncStatus.Synced;
@@ -132,14 +132,14 @@ public class BackupManager
                         try
                         {
                             // We use the same targetFolderId we resolved above
-                            var subfolderIdForRetention = await _googleDriveService.GetOrCreateFolderAsync(backup.Name, cloudFolderId);
-                            var files = await _googleDriveService.ListFilesAsync(subfolderIdForRetention);
+                            var subfolderIdForRetention = await _googleDriveService.GetOrCreateFolderAsync(backup.Name, username, cloudFolderId);
+                            var files = await _googleDriveService.ListFilesAsync(subfolderIdForRetention, username);
                             if (files.Count > retentionCount)
                             {
                                 var filesToDelete = files.Skip(retentionCount).ToList();
                                 foreach (var f in filesToDelete)
                                 {
-                                    await _googleDriveService.DeleteFileAsync(f.id);
+                                    await _googleDriveService.DeleteFileAsync(f.id, username);
                                     _logger.LogInformation("Deleted old cloud backup for retention: {FileName} ({FileId})", f.name, f.id);
                                 }
                             }
@@ -224,7 +224,7 @@ public class BackupManager
                 try
                 {
                     _logger.LogWarning("Attempting to delete residual cloud file after backup failure. CloudFileId: {CloudFileId}", backup.CloudFileId);
-                    await _googleDriveService.DeleteFileAsync(backup.CloudFileId);
+                    await _googleDriveService.DeleteFileAsync(backup.CloudFileId, username);
                     _logger.LogInformation("Successfully deleted residual cloud file: {CloudFileId}", backup.CloudFileId);
                     backup.CloudFileId = null;
                     backup.CloudLink = null;

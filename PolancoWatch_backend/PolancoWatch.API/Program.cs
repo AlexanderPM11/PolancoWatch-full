@@ -59,9 +59,12 @@ builder.Services.AddSignalR();
 
 // Configure Docker Client (Singleton)
 builder.Services.AddSingleton<IDockerClient>(sp => {
-    var dockerUri = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
-        ? "npipe://./pipe/docker_engine" 
-        : "unix:///var/run/docker.sock";
+    var dockerHostEnv = Environment.GetEnvironmentVariable("DOCKER_HOST");
+    var dockerUri = !string.IsNullOrEmpty(dockerHostEnv) 
+        ? dockerHostEnv 
+        : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+            ? "npipe://./pipe/docker_engine" 
+            : "unix:///var/run/docker.sock";
     return new DockerClientConfiguration(new Uri(dockerUri)).CreateClient();
 });
 // Configure JWT Authentication
@@ -129,6 +132,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
+
+                if (context.Request.Cookies.TryGetValue("jwt", out var cookieToken))
+                {
+                    context.Token = cookieToken;
+                }
 
                 if (!string.IsNullOrEmpty(accessToken)
                     && (path.StartsWithSegments("/metricshub")

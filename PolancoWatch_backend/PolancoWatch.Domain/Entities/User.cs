@@ -18,4 +18,8 @@ public class User
     public DateTimeOffset? ResetTokenExpiry { get; set; }
     public DateTimeOffset? LastResetRequest { get; set; }
     public bool IsAdmin { get; set; }
+    [MaxLength(512)]
+    public string? GoogleDriveRefreshToken { get; set; }
+    [MaxLength(512)]
+    public string? GoogleDriveFolderId { get; set; }
 }

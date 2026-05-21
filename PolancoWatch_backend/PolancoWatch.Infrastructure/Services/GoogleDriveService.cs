@@ -11,7 +11,10 @@ using Google.Apis.Upload;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using PolancoWatch.Application.Interfaces;
+using PolancoWatch.Infrastructure.Data;
 
 namespace PolancoWatch.Infrastructure.Services;
 
@@ -19,15 +22,16 @@ public class GoogleDriveService : IGoogleDriveService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<GoogleDriveService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly string _applicationName = "PolancoWatch";
-    private DriveService? _driveService;
 
     private static readonly string[] Scopes = { DriveService.Scope.Drive };
 
-    public GoogleDriveService(IConfiguration configuration, ILogger<GoogleDriveService> logger)
+    public GoogleDriveService(IConfiguration configuration, ILogger<GoogleDriveService> logger, IServiceScopeFactory scopeFactory)
     {
         _configuration = configuration;
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
     // --- OAuth 2.0 Flow ---
@@ -76,7 +80,7 @@ public class GoogleDriveService : IGoogleDriveService
                $"&prompt=consent";
     }
 
-    public async Task<string> ExchangeCodeForRefreshTokenAsync(string code, string redirectUri)
+    public async Task<string> ExchangeCodeForRefreshTokenAsync(string code, string redirectUri, string username)
     {
         var flow = CreateFlow();
         var tokenResponse = await flow.ExchangeCodeForTokenAsync("user", code, redirectUri, CancellationToken.None);
@@ -84,23 +88,23 @@ public class GoogleDriveService : IGoogleDriveService
         if (string.IsNullOrEmpty(tokenResponse.RefreshToken))
             throw new Exception("No refresh token was returned. Make sure you are not already authorized; try revoking access at https://myaccount.google.com/permissions and try again.");
 
-        // Persist refresh token to a local file so it survives restarts
-        var tokenPath = GetTokenFilePath();
-        await File.WriteAllTextAsync(tokenPath, tokenResponse.RefreshToken);
-        _logger.LogInformation("[DriveService] Refresh token saved to: {TokenPath}", tokenPath);
-
-        // Reset cached service so it re-initializes with new token
-        _driveService = null;
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        if (user != null)
+        {
+            user.GoogleDriveRefreshToken = tokenResponse.RefreshToken;
+            await context.SaveChangesAsync();
+            _logger.LogInformation("[DriveService] Refresh token saved for user: {Username}", username);
+        }
 
         return tokenResponse.RefreshToken;
     }
 
     // --- Drive Service ---
 
-    private async Task<DriveService> GetDriveServiceAsync()
+    private async Task<DriveService> GetDriveServiceAsync(string username)
     {
-        if (_driveService != null) return _driveService;
-
         var clientId = GetFirstConfiguredValue(
             Environment.GetEnvironmentVariable("GOOGLE_DRIVE_CLIENT_ID"),
             _configuration["GoogleDrive:ClientId"]);
@@ -111,8 +115,8 @@ public class GoogleDriveService : IGoogleDriveService
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
             throw new Exception("Google Drive OAuth credentials not configured. Set GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET.");
 
-        // Load refresh token from file or config
-        var refreshToken = await LoadRefreshTokenAsync();
+        // Load refresh token from user DB or config
+        var refreshToken = await LoadRefreshTokenAsync(username);
         if (string.IsNullOrEmpty(refreshToken))
             throw new Exception("Google Drive is not authorized. Please click 'Connect Google Drive' to authorize the application.");
 
@@ -120,16 +124,14 @@ public class GoogleDriveService : IGoogleDriveService
         var tokenResponse = new TokenResponse { RefreshToken = refreshToken };
         var credential = new UserCredential(flow, "user", tokenResponse);
 
-        _driveService = new DriveService(new BaseClientService.Initializer
+        return new DriveService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
             ApplicationName = _applicationName,
         });
-
-        return _driveService;
     }
 
-    private async Task<string?> LoadRefreshTokenAsync()
+    private async Task<string?> LoadRefreshTokenAsync(string username)
     {
         // 1. Environment variable (for Docker/production)
         var fromEnv = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_REFRESH_TOKEN");
@@ -139,33 +141,30 @@ public class GoogleDriveService : IGoogleDriveService
         var fromConfig = _configuration["GoogleDrive:RefreshToken"];
         if (!string.IsNullOrEmpty(fromConfig)) return fromConfig;
 
-        // 3. Local token file (written after OAuth callback)
-        var tokenPath = GetTokenFilePath();
-        if (File.Exists(tokenPath))
-            return (await File.ReadAllTextAsync(tokenPath)).Trim();
-
-        return null;
-    }
-
-    private string GetTokenFilePath()
-    {
-        // Try to store in 'data' directory first (where the SQLite DB is)
-        var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
-        if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
-        
-        return Path.Combine(dataDir, "drive-token.json");
+        // 3. User DB
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        return user?.GoogleDriveRefreshToken;
     }
 
     // --- Upload ---
 
-    public async Task<(string fileId, string webViewLink)> UploadFileAsync(string filePath, string fileName, string? folderId = null)
+    public async Task<(string fileId, string webViewLink)> UploadFileAsync(string filePath, string fileName, string username, string? folderId = null)
     {
-        var service = await GetDriveServiceAsync();
+        var service = await GetDriveServiceAsync(username);
 
-        // Resolve target folder ID (Parameter -> Env -> Config)
-        var targetFolderIdRaw = folderId
-            ?? Environment.GetEnvironmentVariable("GOOGLE_DRIVE_DEFAULT_FOLDER_ID")
-            ?? _configuration["GoogleDrive:DefaultFolderId"];
+        // Resolve target folder ID
+        var targetFolderIdRaw = folderId;
+        if (string.IsNullOrEmpty(targetFolderIdRaw))
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            targetFolderIdRaw = user?.GoogleDriveFolderId 
+                ?? Environment.GetEnvironmentVariable("GOOGLE_DRIVE_DEFAULT_FOLDER_ID")
+                ?? _configuration["GoogleDrive:DefaultFolderId"];
+        }
 
         var targetFolderId = ResolveFolderId(targetFolderIdRaw);
 
@@ -191,9 +190,9 @@ public class GoogleDriveService : IGoogleDriveService
         return (request.ResponseBody.Id, request.ResponseBody.WebViewLink);
     }
 
-    public async Task<List<(string id, string name, DateTime? createdTime)>> ListFilesAsync(string folderId)
+    public async Task<List<(string id, string name, DateTime? createdTime)>> ListFilesAsync(string folderId, string username)
     {
-        var service = await GetDriveServiceAsync();
+        var service = await GetDriveServiceAsync(username);
         var targetFolderId = ResolveFolderId(folderId);
         
         var request = service.Files.List();
@@ -210,9 +209,9 @@ public class GoogleDriveService : IGoogleDriveService
         return files;
     }
 
-    public async Task<string> GetOrCreateFolderAsync(string folderName, string? parentId = null)
+    public async Task<string> GetOrCreateFolderAsync(string folderName, string username, string? parentId = null)
     {
-        var service = await GetDriveServiceAsync();
+        var service = await GetDriveServiceAsync(username);
         
         // Search for existing folder
         var query = $"name = '{folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
@@ -250,9 +249,9 @@ public class GoogleDriveService : IGoogleDriveService
         return folder.Id;
     }
 
-    public async Task<bool> DeleteFileAsync(string fileId)
+    public async Task<bool> DeleteFileAsync(string fileId, string username)
     {
-        var service = await GetDriveServiceAsync();
+        var service = await GetDriveServiceAsync(username);
         try
         {
             await service.Files.Delete(fileId).ExecuteAsync();
@@ -264,11 +263,11 @@ public class GoogleDriveService : IGoogleDriveService
         }
     }
 
-    public async Task<bool> IsAuthenticatedAsync()
+    public async Task<bool> IsAuthenticatedAsync(string username)
     {
         try
         {
-            await GetDriveServiceAsync();
+            await GetDriveServiceAsync(username);
             return true;
         }
         catch (Exception ex)
@@ -278,16 +277,16 @@ public class GoogleDriveService : IGoogleDriveService
         }
     }
 
-    public async Task RevokeAuthAsync()
+    public async Task RevokeAuthAsync(string username)
     {
-        var tokenPath = GetTokenFilePath();
-        if (File.Exists(tokenPath))
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        if (user != null)
         {
-            File.Delete(tokenPath);
+            user.GoogleDriveRefreshToken = null;
+            await context.SaveChangesAsync();
         }
-        
-        // Reset cached service
-        _driveService = null;
         
         await Task.CompletedTask;
     }
