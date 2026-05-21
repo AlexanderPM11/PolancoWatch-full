@@ -1,0 +1,17 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+.vscode/
+
+# Node
+node_modules/
+dist/
+.env
+
+# Logs
+*.log
+
+# Docker
+.docker/

@@ -1,0 +1,16 @@
+{
+  "name": "PolancoWatch",
+  "short_name": "PolancoWatch",
+  "description": "Real-time Docker & System Monitoring by apolanco.com",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

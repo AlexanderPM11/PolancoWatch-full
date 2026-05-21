@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PolancoWatch.API/PolancoWatch.API.csproj" />
+  <Project Path="PolancoWatch.Application/PolancoWatch.Application.csproj" />
+  <Project Path="PolancoWatch.Domain/PolancoWatch.Domain.csproj" />
+  <Project Path="PolancoWatch.Infrastructure/PolancoWatch.Infrastructure.csproj" />
+</Solution>
