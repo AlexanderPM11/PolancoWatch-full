@@ -15,6 +15,8 @@ import Backups from './pages/Backups';
 import Sidebar from './components/Sidebar';
 import { authService } from './services/api';
 
+import ReloadPrompt from './components/ReloadPrompt';
+
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   return authService.isAuthenticated() ? <>{children}</> : <Navigate to="/login" />;
 };
@@ -37,93 +39,96 @@ function App() {
   );
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route 
-          path="/" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/alerts" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <Alerts />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/processes" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <Processes />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/documentation" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <Documentation />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/backups" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <Backups />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/web-monitors" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <WebMonitors />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/web-monitors/:id" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <WebMonitorDetails />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            <PrivateRoute>
-              <Layout>
-                <Profile />
-              </Layout>
-            </PrivateRoute>
-          } 
-        />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route 
+            path="/" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/alerts" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Alerts />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/processes" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Processes />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/documentation" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Documentation />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/backups" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Backups />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/web-monitors" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <WebMonitors />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/web-monitors/:id" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <WebMonitorDetails />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Profile />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+        </Routes>
+      </BrowserRouter>
+      <ReloadPrompt />
+    </>
   );
 }
 
