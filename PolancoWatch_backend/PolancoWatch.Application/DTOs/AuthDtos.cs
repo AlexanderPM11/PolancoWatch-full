@@ -29,6 +29,7 @@ public class UpdateProfileRequest
     public string? NewUsername { get; set; }
 
     [MinLength(6)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", ErrorMessage = "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.")]
     public string? NewPassword { get; set; }
 }
 
@@ -48,5 +49,6 @@ public class ResetPasswordRequest
 
     [Required]
     [MinLength(6)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", ErrorMessage = "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.")]
     public string NewPassword { get; set; } = string.Empty;
 }
