@@ -20,7 +20,8 @@ import {
   X,
   History as LucideHistory,
   Play,
-  Activity
+  Activity,
+  RotateCcw
 } from 'lucide-react';
 import { backupService, type BackupSchedule } from '../services/api';
 import { backupSignalRService } from '../services/backupSignalR';
@@ -244,6 +245,13 @@ const Backups = () => {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [restoreBackupId, setRestoreBackupId] = useState("");
+  const [restoreTarget, setRestoreTarget] = useState("");
+  const [restoreDbUser, setRestoreDbUser] = useState("root");
+  const [restoreDbPass, setRestoreDbPass] = useState("");
+  const [restoreDbName, setRestoreDbName] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
   const [backupToDelete, setBackupToDelete] = useState<string | null>(null);
   const [runningProtocols, setRunningProtocols] = useState<Record<string, boolean>>({});
 
@@ -336,6 +344,11 @@ const Backups = () => {
     setAvailableDatabases([]);
     setNewSchedDbName("");
   }, [newSchedTarget, newSchedDbUser, newSchedDbPass]);
+
+  useEffect(() => {
+    setAvailableDatabases([]);
+    setRestoreDbName("");
+  }, [restoreTarget, restoreDbUser, restoreDbPass]);
 
   const handleLoadDatabases = async (targetId: string, user: string, pass: string) => {
     if (!targetId || targetId === "") return;
@@ -611,6 +624,36 @@ const Backups = () => {
       });
     } finally {
       setRunningProtocols(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!restoreBackupId || !restoreTarget) {
+      showToast("Please select a target container", "error");
+      return;
+    }
+
+    try {
+      setIsRestoring(true);
+      showToast("Restoring database from backup...", "loading");
+      await backupService.restoreDatabase(restoreBackupId, {
+        targetContainerId: restoreTarget,
+        dbUser: restoreDbUser,
+        dbPass: restoreDbPass,
+        dbName: restoreDbName
+      });
+      showToast("Database restored successfully.", "success");
+      setIsRestoreModalOpen(false);
+      setRestoreTarget("");
+      setRestoreDbUser("root");
+      setRestoreDbPass("");
+      setRestoreDbName("");
+      fetchData();
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.response?.data || "Database restore failed.";
+      showToast(errMsg, "error");
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -920,6 +963,18 @@ const Backups = () => {
                               >
                                 <Download size={14} />
                               </button>
+                              {backup.type === 1 && (
+                                <button 
+                                  onClick={() => {
+                                      setRestoreBackupId(backup.id);
+                                      setIsRestoreModalOpen(true);
+                                  }} 
+                                  className="p-2.5 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/20 rounded-xl transition-colors"
+                                  title="Restore Database"
+                                >
+                                  <RotateCcw size={14} />
+                                </button>
+                              )}
                               <button onClick={() => handleDelete(backup.id)} className="p-2.5 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"><Trash2 size={14} /></button>
                             </div>
                           </td>
@@ -988,6 +1043,18 @@ const Backups = () => {
 
                         <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
                             <button onClick={() => handleDownload(backup.id, backup.name, backup.filePath)} className="p-2.5 bg-white/5 text-slate-400 hover:text-white rounded-xl"><Download size={14} /></button>
+                            {backup.type === 1 && (
+                              <button 
+                                onClick={() => {
+                                    setRestoreBackupId(backup.id);
+                                    setIsRestoreModalOpen(true);
+                                }} 
+                                className="p-2.5 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/20 rounded-xl"
+                                title="Restore Database"
+                              >
+                                <RotateCcw size={14} />
+                              </button>
+                            )}
                             <button onClick={() => handleDelete(backup.id)} className="p-2.5 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 rounded-xl"><Trash2 size={14} /></button>
                         </div>
                     </div>
@@ -1729,6 +1796,68 @@ const Backups = () => {
               Are you sure you want to sanitize this resource?<br/>
               <span className="text-rose-400/80 italic">This action cannot be rolled back.</span>
             </p>
+          </div>
+        </div>
+      </VaultOverlay>
+
+      <VaultOverlay
+        isOpen={isRestoreModalOpen}
+        onClose={() => setIsRestoreModalOpen(false)}
+        title="Restore Database"
+        footer={
+          <>
+             <button onClick={() => setIsRestoreModalOpen(false)} className="px-6 py-2.5 text-[10px] font-black uppercase text-slate-500 hover:text-white transition-colors">Cancel</button>
+             <button 
+               onClick={handleConfirmRestore} 
+               disabled={isRestoring || !restoreTarget}
+               className="bg-brand-primary text-obsidian-950 px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-secondary transition-all shadow-[0_0_20px_#a78bfa33] disabled:opacity-50"
+             >
+               {isRestoring ? 'Restoring...' : 'Confirm Restore'}
+             </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-3 px-1">
+            <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Target Container</label>
+            <Combobox 
+              options={availableContainers.map(c => ({ name: c.name, path: c.id }))} 
+              value={restoreTarget} 
+              onChange={setRestoreTarget} 
+              placeholder="Select target container..."
+            />
+            {restoreTarget !== "" && (
+              <div className="mt-4 space-y-4 animate-fade-in relative z-[60]">
+                <div className="flex gap-2">
+                  <div className="flex-1 space-y-2">
+                    <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">DB User</label>
+                    <input type="text" placeholder="root" className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={restoreDbUser} onChange={(e) => setRestoreDbUser(e.target.value)} />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Password</label>
+                    <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={restoreDbPass} onChange={(e) => setRestoreDbPass(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Database Name (Optional)</label>
+                    <button onClick={() => handleLoadDatabases(restoreTarget, restoreDbUser, restoreDbPass)} className="text-[8px] text-brand-primary hover:text-brand-secondary font-bold uppercase transition-colors" disabled={loadingDatabases}>
+                      {loadingDatabases ? 'Loading...' : 'Load Databases'}
+                    </button>
+                  </div>
+                  <Combobox 
+                    options={[
+                      { name: '-- All Databases --', path: '' },
+                      ...availableDatabases.map(db => ({ name: db, path: db }))
+                    ]}
+                    value={restoreDbName}
+                    onChange={setRestoreDbName}
+                    placeholder={loadingDatabases ? "Loading databases..." : "Select a database..."}
+                    allowCustom={true}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </VaultOverlay>

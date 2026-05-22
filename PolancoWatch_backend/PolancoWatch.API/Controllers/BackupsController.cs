@@ -331,6 +331,21 @@ public class BackupsController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreDatabase(string id, [FromBody] RestoreDbRequest request)
+    {
+        try 
+        {
+            await _backupService.RestoreDatabaseAsync(id, request);
+            return Ok(new { message = "Database restored successfully." });
+        } 
+        catch (Exception ex) 
+        {
+            _logger.LogError(ex, "Error restoring database from backup {BackupId}", id);
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
     [HttpPost("database")]
     public IActionResult TriggerDatabaseBackup([FromQuery] BackupFormat format = BackupFormat.Zip, [FromQuery] string? target = null, [FromQuery] bool syncToCloud = false, [FromQuery] string? cloudFolderId = null, [FromQuery] string? backupName = null, [FromQuery] bool keepLocal = true, [FromQuery] int retentionCount = 0, [FromQuery] bool sendTelegram = false)
     {

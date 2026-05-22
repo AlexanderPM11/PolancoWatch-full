@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -8,7 +9,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using PolancoWatch.Application.Interfaces;
+using PolancoWatch.Application.DTOs;
+using PolancoWatch.Domain.Entities;
+using PolancoWatch.Infrastructure.Data;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 
@@ -18,13 +23,15 @@ public class BackupService : IBackupService
 {
     private readonly IConfiguration _configuration;
     private readonly IDockerClient _dockerClient;
+    private readonly IServiceProvider _serviceProvider;
     private readonly string _backupRootPath;
     private readonly string[] _allowedPaths;
 
-    public BackupService(IConfiguration configuration, IDockerClient dockerClient)
+    public BackupService(IConfiguration configuration, IDockerClient dockerClient, IServiceProvider serviceProvider)
     {
         _configuration = configuration;
         _dockerClient = dockerClient;
+        _serviceProvider = serviceProvider;
         string root = configuration["Backup:RootPath"] ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "backups");
         _backupRootPath = Path.GetFullPath(root);
         _allowedPaths = configuration.GetSection("Backup:AllowedPaths").Get<string[]>() ?? Array.Empty<string>();
@@ -287,5 +294,70 @@ public class BackupService : IBackupService
         }
 
         return password.Equals(storedHash);
+    }
+
+    public async Task RestoreDatabaseAsync(string backupId, RestoreDbRequest req)
+    {
+        // 1. Buscar el backup en la base de datos
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (!Guid.TryParse(backupId, out var backupGuid))
+        {
+            throw new Exception("Invalid Backup ID format.");
+        }
+        var backup = await dbContext.Backups.FindAsync(backupGuid);
+        if (backup == null || string.IsNullOrEmpty(backup.FilePath) || !File.Exists(backup.FilePath)) 
+            throw new Exception("Backup file not found.");
+        
+        if (backup.Type != BackupType.Database || backup.Format != BackupFormat.Zip) 
+            throw new Exception("Solo se pueden restaurar respaldos de base de datos en formato ZIP.");
+        
+        // 2. Detectar Motor de DB
+        var containerInfo = await _dockerClient.Containers.InspectContainerAsync(req.TargetContainerId);
+        bool isPostgres = containerInfo.Config.Image.ToLowerInvariant().Contains("postgres") || containerInfo.Config.Image.ToLowerInvariant().Contains("supabase");
+        
+        // 3. Preparar el Comando Exec
+        string dbTarget = string.IsNullOrEmpty(req.DbName) ? (isPostgres ? "postgres" : "") : ShellQuote(req.DbName);
+        string cmd = isPostgres 
+            ? $"PGPASSWORD={ShellQuote(req.DbPass)} psql -U {ShellQuote(req.DbUser)} -d {dbTarget}"
+            : $"mysql -u {ShellQuote(req.DbUser)} -p{ShellQuote(req.DbPass)} {dbTarget}";
+        
+        var execParams = new ContainerExecCreateParameters
+        {
+            AttachStdin = true, AttachStdout = true, AttachStderr = true,
+            Cmd = new[] { "sh", "-c", cmd }
+        };
+        var execResponse = await _dockerClient.Exec.ExecCreateContainerAsync(req.TargetContainerId, execParams);
+        
+        // 4. Streamear el archivo SQL desde el ZIP a Stdin
+        using var archive = ZipFile.OpenRead(backup.FilePath);
+        var sqlEntry = archive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".sql", StringComparison.OrdinalIgnoreCase));
+        if (sqlEntry == null) throw new Exception("No valid .sql file found inside the ZIP archive.");
+        
+        using var execStream = await _dockerClient.Exec.StartAndAttachContainerExecAsync(execResponse.ID, false, default);
+        using var sqlStream = sqlEntry.Open();
+        var buffer = new byte[81920]; // 80KB buffer
+        int bytesRead;
+        
+        var writeTask = Task.Run(async () => {
+            while ((bytesRead = await sqlStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                await execStream.WriteAsync(buffer, 0, bytesRead, default);
+            }
+            execStream.CloseWrite(); // Señal de fin de archivo
+        });
+        var readTask = execStream.ReadOutputToEndAsync(default);
+        await Task.WhenAll(writeTask, readTask);
+        
+        // 5. Validar Errores
+        var res = readTask.Result;
+        if (!string.IsNullOrEmpty(res.stderr))
+        {
+            bool hasError = res.stderr.Contains("error", StringComparison.OrdinalIgnoreCase) || res.stderr.Contains("fatal", StringComparison.OrdinalIgnoreCase);
+            bool isMySqlWarning = res.stderr.Contains("Warning: Using a password", StringComparison.OrdinalIgnoreCase);
+            bool isPgWarning = res.stderr.Contains("already exists", StringComparison.OrdinalIgnoreCase) || res.stderr.Contains("permission denied to create event trigger", StringComparison.OrdinalIgnoreCase); // Típico de Supabase
+            if (hasError && !isMySqlWarning && !isPgWarning) {
+                throw new Exception($"Restore failed: {res.stderr}");
+            }
+        }
     }
 }
