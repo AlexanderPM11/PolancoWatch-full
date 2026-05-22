@@ -28,7 +28,7 @@ public class AuthController : ControllerBase
         { 
             HttpOnly = true, 
             Secure = true, 
-            SameSite = SameSiteMode.Strict, 
+            SameSite = SameSiteMode.None, 
             Expires = DateTime.UtcNow.AddHours(8) 
         });
 
@@ -42,7 +42,7 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.None,
             Expires = DateTime.UtcNow.AddDays(-1)
         });
         return Ok(new { message = "Logged out successfully" });
@@ -64,7 +64,7 @@ public class AuthController : ControllerBase
             { 
                 HttpOnly = true, 
                 Secure = true, 
-                SameSite = SameSiteMode.Strict, 
+                SameSite = SameSiteMode.None, 
                 Expires = DateTime.UtcNow.AddHours(8) 
             });
         }
