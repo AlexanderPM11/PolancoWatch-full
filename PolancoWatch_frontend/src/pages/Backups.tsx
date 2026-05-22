@@ -330,8 +330,12 @@ const Backups = () => {
     try {
       const dbs = await backupService.getContainerDatabases(targetId, user, pass);
       setAvailableDatabases(dbs);
+      if (newBackupDbName && !dbs.includes(newBackupDbName)) setNewBackupDbName("");
+      if (newSchedDbName && !dbs.includes(newSchedDbName)) setNewSchedDbName("");
     } catch {
       setAvailableDatabases([]);
+      setNewBackupDbName("");
+      setNewSchedDbName("");
     } finally {
       setLoadingDatabases(false);
     }
