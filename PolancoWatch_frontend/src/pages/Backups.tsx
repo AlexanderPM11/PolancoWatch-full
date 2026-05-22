@@ -99,7 +99,7 @@ const Combobox = ({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-obsidian-900 border border-white/10 rounded-2xl shadow-2xl z-200 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0B0F19] border border-white/10 rounded-2xl shadow-2xl z-[200] overflow-hidden">
           <div className="p-2 border-b border-white/5">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -108,7 +108,7 @@ const Combobox = ({
                 type="text" 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Find volume..."
+                placeholder={allowCustom ? "Search or enter custom..." : "Search options..."}
                 className="w-full bg-white/5 border-none rounded-lg pl-9 pr-4 py-2 text-xs text-white focus:ring-1 focus:ring-brand-primary/50 outline-none"
               />
             </div>

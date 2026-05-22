@@ -48,11 +48,11 @@ public class BackupService : IBackupService
             string cmd;
             if (isPostgres)
             {
-                cmd = $"PGPASSWORD={ShellQuote(dbPass)} psql -U {ShellQuote(dbUser)} -t -c 'SELECT datname FROM pg_database WHERE datistemplate = false;'";
+                cmd = $"PGPASSWORD={ShellQuote(dbPass)} psql -h 127.0.0.1 -U {ShellQuote(dbUser)} -t -c 'SELECT datname FROM pg_database WHERE datistemplate = false;'";
             }
             else
             {
-                cmd = $"mysql -u {ShellQuote(dbUser)} -p{ShellQuote(dbPass)} -e 'SHOW DATABASES;' -s --skip-column-names || mariadb -u {ShellQuote(dbUser)} -p{ShellQuote(dbPass)} -e 'SHOW DATABASES;' -s --skip-column-names";
+                cmd = $"mysql -h 127.0.0.1 -u {ShellQuote(dbUser)} -p{ShellQuote(dbPass)} -e 'SHOW DATABASES;' -s --skip-column-names || mariadb -h 127.0.0.1 -u {ShellQuote(dbUser)} -p{ShellQuote(dbPass)} -e 'SHOW DATABASES;' -s --skip-column-names || mysql -u {ShellQuote(dbUser)} -p{ShellQuote(dbPass)} -e 'SHOW DATABASES;' -s --skip-column-names || mariadb -u {ShellQuote(dbUser)} -p{ShellQuote(dbPass)} -e 'SHOW DATABASES;' -s --skip-column-names";
             }
 
             var execParams = new ContainerExecCreateParameters

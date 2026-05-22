@@ -57,14 +57,14 @@ public class DockerDatabaseBackupStrategy : IBackupStrategy
         if (isPostgres)
         {
             string dbTarget = string.IsNullOrEmpty(context.DbName) ? "postgres" : ShellQuote(ValidateDatabaseName(context.DbName));
-            dumpCmd = $"PGPASSWORD={ShellQuote(context.DbPass)} pg_dump -U {ShellQuote(context.DbUser)} -d {dbTarget} > {ShellQuote($"/tmp/{sqlFileName}")}";
+            dumpCmd = $"PGPASSWORD={ShellQuote(context.DbPass)} pg_dump -h 127.0.0.1 -U {ShellQuote(context.DbUser)} -d {dbTarget} > {ShellQuote($"/tmp/{sqlFileName}")}";
         }
         else
         {
             string databaseArguments = string.IsNullOrEmpty(context.DbName)
                 ? "--all-databases"
                 : $"--databases {ShellQuote(ValidateDatabaseName(context.DbName))}";
-            dumpCmd = $"mysqldump -u {ShellQuote(context.DbUser)} -p{ShellQuote(context.DbPass)} --single-transaction {databaseArguments} > {ShellQuote($"/tmp/{sqlFileName}")}";
+            dumpCmd = $"mysqldump -h 127.0.0.1 -u {ShellQuote(context.DbUser)} -p{ShellQuote(context.DbPass)} --single-transaction {databaseArguments} > {ShellQuote($"/tmp/{sqlFileName}")}";
         }
 
         var execParams = new ContainerExecCreateParameters
