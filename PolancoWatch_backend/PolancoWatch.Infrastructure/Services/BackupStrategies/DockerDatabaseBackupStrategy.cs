@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +33,8 @@ public class DockerDatabaseBackupStrategy : IBackupStrategy
 
     public async Task<string> ExecuteBackupAsync(BackupContext context)
     {
+        string containerId = await ResolveContainerIdAsync(context.TargetPath);
+
         string backupName = context.BackupName;
         if (!string.IsNullOrEmpty(backupName))
         {
@@ -60,7 +63,7 @@ public class DockerDatabaseBackupStrategy : IBackupStrategy
         string? execId = null;
         try
         {
-            var execResponse = await _dockerClient.Exec.ExecCreateContainerAsync(context.TargetPath, execParams);
+            var execResponse = await _dockerClient.Exec.ExecCreateContainerAsync(containerId, execParams);
             execId = execResponse.ID;
             using (var stream = await _dockerClient.Exec.StartAndAttachContainerExecAsync(execResponse.ID, false, CancellationToken.None))
             {
@@ -107,7 +110,7 @@ public class DockerDatabaseBackupStrategy : IBackupStrategy
                 AttachStderr = false,
                 Cmd = new[] { "cat", $"/tmp/{sqlFileName}" }
             };
-            var catExec = await _dockerClient.Exec.ExecCreateContainerAsync(context.TargetPath, catParams);
+            var catExec = await _dockerClient.Exec.ExecCreateContainerAsync(containerId, catParams);
             string localSqlPath = Path.Combine(tempDir, sqlFileName);
 
             using (var catStream = await _dockerClient.Exec.StartAndAttachContainerExecAsync(catExec.ID, false, CancellationToken.None))
@@ -158,7 +161,7 @@ public class DockerDatabaseBackupStrategy : IBackupStrategy
             try
             {
                 var rmParams = new ContainerExecCreateParameters { Cmd = new[] { "rm", "-f", $"/tmp/{sqlFileName}" } };
-                var rmExec = await _dockerClient.Exec.ExecCreateContainerAsync(context.TargetPath, rmParams);
+                var rmExec = await _dockerClient.Exec.ExecCreateContainerAsync(containerId, rmParams);
                 await _dockerClient.Exec.StartContainerExecAsync(rmExec.ID);
             }
             catch { }
@@ -182,5 +185,32 @@ public class DockerDatabaseBackupStrategy : IBackupStrategy
     private static string ShellQuote(string value)
     {
         return $"'{value.Replace("'", "'\\''")}'";
+    }
+
+    private async Task<string> ResolveContainerIdAsync(string target)
+    {
+        try
+        {
+            var container = await _dockerClient.Containers.InspectContainerAsync(target);
+            return container.ID;
+        }
+        catch (DockerContainerNotFoundException)
+        {
+            // Ignore and try by name
+        }
+        catch (DockerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Ignore and try by name
+        }
+
+        var containers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters { All = true });
+        var matched = containers.FirstOrDefault(c => c.Names != null && c.Names.Any(n => n.TrimStart('/') == target || n == target));
+
+        if (matched != null)
+        {
+            return matched.ID;
+        }
+
+        throw new Exception($"Container not found by ID or Name: {target}");
     }
 }

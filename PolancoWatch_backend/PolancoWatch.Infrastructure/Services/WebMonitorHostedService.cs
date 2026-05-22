@@ -69,18 +69,16 @@ public class WebMonitorHostedService : BackgroundService
             httpClient.DefaultRequestHeaders.Add("User-Agent", "PolancoWatch/1.2 (+https://github.com/apolanco/PolancoWatch)");
         }
 
-        foreach (var monitor in monitors)
+        var checkTasks = monitors.Select(async monitor =>
         {
             if (monitor.LastCheckTime.HasValue && 
                 monitor.LastCheckTime.Value.AddSeconds(monitor.CheckIntervalSeconds) > TimeHelper.Now)
             {
-                continue;
+                return ((WebMonitor Monitor, WebCheck Check, WebMonitorStatus OldStatus)?)null;
             }
 
-            var check = await ExecuteReliableCheckAsync(monitor, httpClient, ct);
-
-            // Detect Status Change and Send Alerts
             var oldStatus = monitor.Status;
+            var check = await ExecuteReliableCheckAsync(monitor, httpClient, ct);
             
             check.IsSlow = check.IsUp && check.LatencyMs > monitor.SlowThresholdMs;
 
@@ -103,6 +101,19 @@ public class WebMonitorHostedService : BackgroundService
                     check.IsSlow = false;
                 }
             }
+
+            return ((WebMonitor Monitor, WebCheck Check, WebMonitorStatus OldStatus)?)(monitor, check, oldStatus);
+        });
+
+        var results = await Task.WhenAll(checkTasks);
+
+        foreach (var result in results)
+        {
+            if (!result.HasValue) continue;
+
+            var monitor = result.Value.Monitor;
+            var check = result.Value.Check;
+            var oldStatus = result.Value.OldStatus;
 
             if (!check.IsUp)
             {

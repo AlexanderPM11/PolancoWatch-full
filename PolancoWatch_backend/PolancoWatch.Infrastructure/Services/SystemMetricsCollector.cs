@@ -563,6 +563,8 @@ public class SystemMetricsCollector : IMetricsCollector
                 
                 // We'll update stats for these in parallel
                 var dockerContainers = new List<DockerContainerMetrics>();
+                using var semaphore = new SemaphoreSlim(5);
+
                 var containerStatsTasks = containers.Select(async c => {
                     var container = new DockerContainerMetrics
                     {
@@ -575,6 +577,7 @@ public class SystemMetricsCollector : IMetricsCollector
 
                     if (c.State == "running")
                     {
+                        await semaphore.WaitAsync();
                         try {
                             using var statsStream = await _dockerClient!.Containers.GetContainerStatsAsync(c.ID, new ContainerStatsParameters { Stream = false }, CancellationToken.None);
                             using var reader = new System.IO.StreamReader(statsStream);
@@ -602,6 +605,9 @@ public class SystemMetricsCollector : IMetricsCollector
                                 }
                             }
                         } catch { }
+                        finally {
+                            semaphore.Release();
+                        }
                     }
                     return container;
                 });
