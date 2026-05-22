@@ -84,7 +84,7 @@ const Combobox = ({
   }, []);
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className={`relative ${isOpen ? 'z-50' : 'z-10'}`} ref={containerRef}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3 cursor-pointer hover:border-brand-primary/50 transition-all"
@@ -1272,7 +1272,7 @@ const Backups = () => {
                     <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={newBackupDbPass} onChange={(e) => setNewBackupDbPass(e.target.value)} />
                   </div>
                 </div>
-                <div className="space-y-2 relative">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Database Name (Optional)</label>
                     <button onClick={() => handleLoadDatabases(newBackupTarget, newBackupDbUser, newBackupDbPass)} className="text-[8px] text-brand-primary hover:text-brand-secondary font-bold uppercase transition-colors" disabled={loadingDatabases}>
@@ -1566,7 +1566,7 @@ const Backups = () => {
                       <input type="password" placeholder="Leave blank to use Docker env..." className="w-full bg-black/40 border border-brand-primary/10 rounded-xl px-4 py-2.5 text-base md:text-[10px] text-white outline-none focus:border-brand-primary/50" value={newSchedDbPass} onChange={(e) => setNewSchedDbPass(e.target.value)} />
                     </div>
                   </div>
-                  <div className="space-y-2 relative">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest ml-1">Database Name (Optional)</label>
                       <button onClick={() => handleLoadDatabases(newSchedTarget, newSchedDbUser, newSchedDbPass)} className="text-[8px] text-brand-primary hover:text-brand-secondary font-bold uppercase transition-colors" disabled={loadingDatabases}>
