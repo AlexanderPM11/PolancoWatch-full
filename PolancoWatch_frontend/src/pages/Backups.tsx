@@ -99,7 +99,10 @@ const Combobox = ({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0B0F19] border border-white/10 rounded-2xl shadow-2xl z-[200] overflow-hidden">
+        <div 
+          className="absolute top-full left-0 right-0 mt-2 bg-obsidian-950 border border-white/10 rounded-2xl shadow-2xl z-[200] overflow-hidden"
+          style={{ backgroundColor: '#0B0F19' }}
+        >
           <div className="p-2 border-b border-white/5">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -323,6 +326,16 @@ const Backups = () => {
     backupSignalRService.connect(handleProgress);
     return () => backupSignalRService.disconnect(handleProgress);
   }, []);
+
+  useEffect(() => {
+    setAvailableDatabases([]);
+    setNewBackupDbName("");
+  }, [newBackupTarget, newBackupDbUser, newBackupDbPass]);
+
+  useEffect(() => {
+    setAvailableDatabases([]);
+    setNewSchedDbName("");
+  }, [newSchedTarget, newSchedDbUser, newSchedDbPass]);
 
   const handleLoadDatabases = async (targetId: string, user: string, pass: string) => {
     if (!targetId || targetId === "") return;

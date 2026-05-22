@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -48,6 +51,62 @@ public class BackupService : IBackupService
             string cmd;
             if (isPostgres)
             {
+                // First, check if the password is valid by fetching the passwd hash from pg_shadow.
+                // We use psql locally (which trusts the connection) to fetch the hash of the user's password.
+                string hashCmd = $"psql -h 127.0.0.1 -U {ShellQuote(dbUser)} -d postgres -t -c \"SELECT passwd FROM pg_shadow WHERE usename = {ShellQuote(dbUser)};\"";
+                
+                var hashExecParams = new ContainerExecCreateParameters
+                {
+                    AttachStdout = true,
+                    AttachStderr = true,
+                    Cmd = new[] { "sh", "-c", hashCmd }
+                };
+
+                var hashExecResponse = await _dockerClient.Exec.ExecCreateContainerAsync(containerId, hashExecParams);
+                using (var hashStream = await _dockerClient.Exec.StartAndAttachContainerExecAsync(hashExecResponse.ID, false, CancellationToken.None))
+                {
+                    var hashRes = await hashStream.ReadOutputToEndAsync(CancellationToken.None);
+                    string storedHash = hashRes.stdout?.Trim();
+                    
+                    if (!string.IsNullOrEmpty(storedHash) && !storedHash.Contains("error", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!VerifyPostgresPassword(dbPass, dbUser, storedHash))
+                        {
+                            // Password is incorrect! Return empty list to simulate authentication failure.
+                            return new List<string>();
+                        }
+                    }
+                    else
+                    {
+                        // Fallback: If we couldn't get the hash (e.g. permission denied or pg_shadow not accessible),
+                        // we try to verify the password by testing a connection via the container's bridge IP address.
+                        string? hostIp = containerInfo.NetworkSettings?.Networks?.Values
+                            .FirstOrDefault(n => !string.IsNullOrEmpty(n.IPAddress))?.IPAddress;
+                            
+                        if (!string.IsNullOrEmpty(hostIp))
+                        {
+                            string testCmd = $"PGPASSWORD={ShellQuote(dbPass)} psql -h {hostIp} -U {ShellQuote(dbUser)} -d postgres -t -c 'SELECT 1;'";
+                            var testExecParams = new ContainerExecCreateParameters
+                            {
+                                AttachStdout = true,
+                                AttachStderr = true,
+                                Cmd = new[] { "sh", "-c", testCmd }
+                            };
+                            var testExecResponse = await _dockerClient.Exec.ExecCreateContainerAsync(containerId, testExecParams);
+                            using (var testStream = await _dockerClient.Exec.StartAndAttachContainerExecAsync(testExecResponse.ID, false, CancellationToken.None))
+                            {
+                                var testRes = await testStream.ReadOutputToEndAsync(CancellationToken.None);
+                                if (!string.IsNullOrEmpty(testRes.stderr) && 
+                                    (testRes.stderr.Contains("password authentication failed", StringComparison.OrdinalIgnoreCase) || 
+                                     testRes.stderr.Contains("authentication failed", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    return new List<string>();
+                                }
+                            }
+                        }
+                    }
+                }
+
                 cmd = $"PGPASSWORD={ShellQuote(dbPass)} psql -h 127.0.0.1 -U {ShellQuote(dbUser)} -t -c 'SELECT datname FROM pg_database WHERE datistemplate = false;'";
             }
             else
@@ -161,5 +220,72 @@ public class BackupService : IBackupService
     private static string ShellQuote(string value)
     {
         return $"'{value.Replace("'", "'\\''")}'";
+    }
+
+    private static bool VerifyPostgresPassword(string password, string username, string storedHash)
+    {
+        if (string.IsNullOrEmpty(storedHash)) return false;
+
+        if (storedHash.StartsWith("md5", StringComparison.OrdinalIgnoreCase))
+        {
+            using (var md5 = MD5.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(password + username);
+                byte[] hashBytes = md5.ComputeHash(bytes);
+                var sb = new StringBuilder("md5");
+                foreach (var b in hashBytes)
+                {
+                    sb.Append(b.ToString("x2"));
+                }
+                return sb.ToString().Equals(storedHash, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        if (storedHash.StartsWith("SCRAM-SHA-256$", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var parts = storedHash.Substring("SCRAM-SHA-256$".Length).Split('$');
+                if (parts.Length < 2) return false;
+
+                var iterSalt = parts[0].Split(':');
+                if (iterSalt.Length < 2) return false;
+
+                int iterations = int.Parse(iterSalt[0]);
+                byte[] salt = Convert.FromBase64String(iterSalt[1]);
+
+                var keys = parts[1].Split(':');
+                string expectedStoredKeyBase64 = keys[0];
+
+                byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+                
+                byte[] saltedPassword;
+                using (var pbkdf2 = new Rfc2898DeriveBytes(passwordBytes, salt, iterations, HashAlgorithmName.SHA256))
+                {
+                    saltedPassword = pbkdf2.GetBytes(32);
+                }
+
+                byte[] clientKey;
+                using (var hmac = new HMACSHA256(saltedPassword))
+                {
+                    clientKey = hmac.ComputeHash(Encoding.UTF8.GetBytes("Client Key"));
+                }
+
+                byte[] storedKey;
+                using (var sha256 = SHA256.Create())
+                {
+                    storedKey = sha256.ComputeHash(clientKey);
+                }
+
+                string actualStoredKeyBase64 = Convert.ToBase64String(storedKey);
+                return expectedStoredKeyBase64.Equals(actualStoredKeyBase64);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        return password.Equals(storedHash);
     }
 }
