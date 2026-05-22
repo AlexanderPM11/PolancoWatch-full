@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using PolancoWatch.Infrastructure.Helpers;
 using PolancoWatch.Domain.Common;
 using PolancoWatch.Infrastructure.Services.BackupStrategies;
+using Hangfire;
 
 namespace PolancoWatch.Infrastructure.Services;
 
@@ -37,7 +38,7 @@ public class BackupManager
         _hubContext = hubContext;
         _logger = logger;
     }
-
+    [AutomaticRetry(Attempts = 0)]
     public async Task<Backup> RunBackupAsync(BackupType type, string? target, BackupFormat format, bool syncToCloud = false, string? cloudFolderId = null, string? backupName = null, bool keepLocal = true, int retentionCount = 0, bool sendTelegram = false, string username = "admin")
     {
         using var scope = _serviceProvider.CreateScope();
