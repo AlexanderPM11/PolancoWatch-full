@@ -224,7 +224,6 @@ export interface BackupService {
   getDriveStatus: () => Promise<{ isAuthenticated: boolean }>;
   getDriveAuthUrl: () => Promise<{ url: string }>;
   revokeDriveAuth: () => Promise<any>;
-  restoreDatabase: (backupId: string, params: { targetContainerId: string; dbUser: string; dbPass: string; dbName: string }) => Promise<any>;
 }
 
 export const backupService: BackupService = {
@@ -283,9 +282,6 @@ export const backupService: BackupService = {
   getDriveStatus: () => api.get<{ isAuthenticated: boolean }>('/api/backups/drive/status').then(res => res.data),
   getDriveAuthUrl: () => api.get<{ url: string }>('/api/backups/drive/auth-url').then(res => res.data),
   revokeDriveAuth: () => api.delete('/api/backups/drive/auth').then(res => res.data),
-  restoreDatabase: (backupId: string, params: { targetContainerId: string; dbUser: string; dbPass: string; dbName: string }) => {
-    return api.post(`/api/backups/${backupId}/restore`, params).then(res => res.data);
-  },
 };
 
 export default api;

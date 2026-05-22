@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using PolancoWatch.Infrastructure.Services;
 using PolancoWatch.Domain.Entities;
@@ -328,21 +329,6 @@ public class BackupsController : ControllerBase
         {
             _logger.LogError(ex, "Error listing databases for container {ContainerId}", containerId);
             return StatusCode(500, new { message = "An error occurred while listing the databases." });
-        }
-    }
-
-    [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreDatabase(string id, [FromBody] RestoreDbRequest request)
-    {
-        try 
-        {
-            await _backupService.RestoreDatabaseAsync(id, request);
-            return Ok(new { message = "Database restored successfully." });
-        } 
-        catch (Exception ex) 
-        {
-            _logger.LogError(ex, "Error restoring database from backup {BackupId}", id);
-            return StatusCode(500, new { message = ex.Message });
         }
     }
 
