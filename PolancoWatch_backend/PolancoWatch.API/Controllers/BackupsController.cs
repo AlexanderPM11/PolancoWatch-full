@@ -490,4 +490,28 @@ public class BackupsController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
+
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAllBackups()
+    {
+        var backups = await _context.Backups.ToListAsync();
+        foreach (var backup in backups)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(backup.FilePath))
+                {
+                    await _backupService.DeleteBackupFileAsync(backup.FilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete backup file: {FilePath}", backup.FilePath);
+            }
+        }
+
+        _context.Backups.RemoveRange(backups);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
 }

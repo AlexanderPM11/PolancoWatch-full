@@ -301,7 +301,14 @@ const Backups = () => {
   const [activeTab, setActiveTab] = useState<'history' | 'schedules'>('history');
   const [historyPage, setHistoryPage] = useState(1);
   const [schedulesPage, setSchedulesPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const itemsPerPage = 8;
+
+  const filteredBackups = backups.filter(b => {
+    if (statusFilter === 'all') return true;
+    return b.status === parseInt(statusFilter);
+  });
 
   const parseFolderId = (value: string) => {
     // Check for Google Drive URL pattern
@@ -642,6 +649,18 @@ const Backups = () => {
     }
   };
 
+  const confirmDeleteAll = async () => {
+    try {
+      showToast("Purging backup history...", "loading");
+      await backupService.deleteAllBackups();
+      showToast("Vault history sanitized", "success");
+      setIsDeleteAllModalOpen(false);
+      fetchData();
+    } catch (error) {
+      showToast("Failed to purge vault history", "error");
+    }
+  };
+
   const handleDownload = async (id: string, name: string, path: string) => {
     try {
       showToast("Preparing download...", "loading");
@@ -850,6 +869,47 @@ const Backups = () => {
         <div className="bg-obsidian-900/50 border border-white/10 rounded-[2.5rem] overflow-hidden backdrop-blur-3xl shadow-2xl min-h-[500px] flex flex-col">
           {activeTab === 'history' ? (
             <>
+              {/* Controls: Filter & Wipe */}
+              <div className="px-8 py-4 border-b border-white/5 bg-white/2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Status Filter */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider mr-2">Filter by Status:</span>
+                  {[
+                    { label: 'ALL', value: 'all' },
+                    { label: 'PENDING', value: '0' },
+                    { label: 'RUNNING', value: '1' },
+                    { label: 'COMPLETED', value: '2' },
+                    { label: 'FAILED', value: '3' }
+                  ].map(tab => (
+                    <button
+                      key={tab.value}
+                      onClick={() => {
+                        setStatusFilter(tab.value);
+                        setHistoryPage(1);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                        statusFilter === tab.value
+                          ? 'bg-brand-primary text-obsidian-950 border-brand-primary shadow-sm shadow-brand-primary/20'
+                          : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Wipe History Button */}
+                {backups.length > 0 && (
+                  <button
+                    onClick={() => setIsDeleteAllModalOpen(true)}
+                    className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 w-fit"
+                  >
+                    <Trash2 size={12} />
+                    Wipe History
+                  </button>
+                )}
+              </div>
+
               <div className="overflow-x-auto custom-scrollbar flex-1">
                 <table className="w-full text-left border-collapse hidden xl:table">
                   <thead>
@@ -864,7 +924,7 @@ const Backups = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {backups
+                    {filteredBackups
                       .slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage)
                       .map((backup) => (
                         <tr key={backup.id} className="hover:bg-white/2 transition-colors group">
@@ -934,12 +994,14 @@ const Backups = () => {
                           </td>
                         </tr>
                       ))}
-                    {backups.length === 0 && !loading && (
+                    {filteredBackups.length === 0 && !loading && (
                       <tr>
                         <td colSpan={7} className="px-8 py-32 text-center">
                           <div className="flex flex-col items-center gap-6 opacity-20">
                             <Database size={64} className="animate-pulse" />
-                            <span className="text-xs font-black uppercase tracking-[0.8em]">Vault is empty</span>
+                            <span className="text-xs font-black uppercase tracking-[0.8em]">
+                              {statusFilter === 'all' ? 'Vault is empty' : 'No backups match filter'}
+                            </span>
                           </div>
                         </td>
                       </tr>
@@ -950,7 +1012,7 @@ const Backups = () => {
 
               {/* Mobile Cards for History */}
               <div className="flex xl:hidden flex-col gap-4 mt-4">
-                {backups.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage).map(backup => (
+                {filteredBackups.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage).map(backup => (
                     <div key={backup.id} className="bg-obsidian-900 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3">
@@ -1001,16 +1063,18 @@ const Backups = () => {
                         </div>
                     </div>
                 ))}
-                {backups.length === 0 && !loading && (
+                {filteredBackups.length === 0 && !loading && (
                     <div className="py-16 text-center opacity-40">
                         <Database size={40} className="mx-auto mb-4" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Vault is empty</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                          {statusFilter === 'all' ? 'Vault is empty' : 'No backups match filter'}
+                        </span>
                     </div>
                 )}
               </div>
               <Pagination 
                 currentPage={historyPage} 
-                totalItems={backups.length} 
+                totalItems={filteredBackups.length} 
                 itemsPerPage={itemsPerPage} 
                 onPageChange={setHistoryPage} 
               />
@@ -1715,6 +1779,32 @@ const Backups = () => {
         }
       >
         Disconnecting Google Drive will immediately halt all automated cloud synchronization pipelines. You will need to re-verify authentication credentials to restore cloud relay capabilities.
+      </Modal>
+
+      {/* Wipe All History Modal */}
+      <Modal
+        isOpen={isDeleteAllModalOpen}
+        onClose={() => setIsDeleteAllModalOpen(false)}
+        title="Sanitize Vault History"
+        type="danger"
+        footer={
+          <>
+            <button 
+              onClick={() => setIsDeleteAllModalOpen(false)} 
+              className="px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+            >
+              Abort
+            </button>
+            <button 
+              onClick={confirmDeleteAll} 
+              className="bg-rose-500 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20"
+            >
+              Confirm Purge
+            </button>
+          </>
+        }
+      >
+        Are you absolutely sure you want to permanently decommission all backups in the history? This will delete all backup archive files from the disk and purge all registry logs. This operation cannot be undone.
       </Modal>
 
       <VaultOverlay
