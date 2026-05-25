@@ -84,7 +84,7 @@ const Combobox = ({
   }, []);
 
   return (
-    <div className={`relative ${isOpen ? 'z-50' : 'z-10'}`} ref={containerRef}>
+    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'}`} ref={containerRef}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3 cursor-pointer hover:border-brand-primary/50 transition-all"
