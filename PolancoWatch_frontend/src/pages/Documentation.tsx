@@ -433,6 +433,30 @@ export default function Documentation() {
                                         </div>
                                     </div>
                                     
+                                    <div className="border-t border-white/5 pt-6 mt-6">
+                                        <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">5. Restauración Completa (Storage y Secretos)</h3>
+                                        <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                                            La base de datos contiene los metadatos, pero para una restauración completa necesitas migrar los archivos físicos del Storage y mantener las claves de seguridad:
+                                        </p>
+                                        
+                                        <ul className="space-y-4 text-xs text-slate-300">
+                                            <li className="flex flex-col gap-2">
+                                                <span><strong className="text-white">A. Archivos del Storage (Binarios):</strong> Empaqueta y restaura los archivos reales del volumen de Docker del servicio de Storage:</span>
+                                                <div className="bg-obsidian-950 rounded-xl p-3 border border-white/5 font-mono text-[9px] text-slate-400 overflow-x-auto">
+                                                    # Respaldar Storage en Origen<br/>
+                                                    tar -czf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_ORIGEN]/_data .<br/><br/>
+                                                    # Restaurar Storage en Destino<br/>
+                                                    rm -rf /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/*<br/>
+                                                    tar -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/<br/>
+                                                    docker restart [CONTENEDOR_STORAGE_DESTINO]
+                                                </div>
+                                            </li>
+                                            <li className="flex flex-col gap-1">
+                                                <span><strong className="text-white">B. Variables de Entorno y JWT (.env):</strong> Copia exactamente las mismas claves de firma de JWT (`anon`, `service_role`) y las contraseñas del archivo <code className="text-brand-primary font-mono text-[10px] bg-white/5 px-1 rounded">.env</code> de origen a destino. De lo contrario, las sesiones activas de tus usuarios se invalidarán y el backend de .NET no se podrá conectar a la base de datos de Supabase.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
                                     <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl p-4 text-xs text-brand-secondary leading-relaxed">
                                         <strong>Tip de Automatización:</strong> Puedes ejecutar el script <code className="text-white font-mono bg-white/5 px-1 rounded">/root/restore_db.sh</code> guardado directamente en tu servidor para automatizar todos estos pasos con un solo comando.
                                     </div>

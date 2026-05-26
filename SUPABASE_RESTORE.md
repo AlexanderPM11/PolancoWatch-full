@@ -102,3 +102,39 @@ Para restaurar los datos sin que los triggers del sistema generen registros dupl
 # Inyectar modo replica al inicio de la carga del archivo de datos
 (echo "SET session_replication_role = replica;"; cat data.sql) | docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres
 ```
+
+---
+
+## 5. Restauración Completa de Supabase (Almacenamiento y Secretos)
+
+Para una restauración 100% funcional, la base de datos PostgreSQL no es suficiente. Debes asegurarte de restaurar los archivos físicos y la configuración.
+
+### A. Respaldar y Restaurar Archivos Físicos (Supabase Storage)
+La base de datos contiene los metadatos (en la tabla `storage.objects`), pero los archivos reales (imágenes, documentos) se guardan en el volumen de Docker de Storage.
+
+1. **Respaldar el Storage (Servidor de Origen):**
+   ```bash
+   tar -czf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_ORIGEN]/_data .
+   ```
+2. **Restaurar el Storage (Servidor de Destino):**
+   ```bash
+   # Limpiar carpeta de destino
+   rm -rf /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/*
+   
+   # Extraer archivos binarios
+   tar -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/
+   
+   # Reiniciar contenedor de storage para recargar permisos
+   docker restart [CONTENEDOR_STORAGE_DESTINO]
+   ```
+
+### B. Copiar Variables de Entorno y Claves JWT (`.env`)
+Los tokens de sesión de tus usuarios (`anon` y `service_role`) y las conexiones se firman con la clave secreta JWT configurada en el archivo `.env` o `docker-compose.yml`.
+* **Regla de Oro:** Siempre copia los archivos de configuración (`.env` y configuraciones de `Kong API Gateway`) de tu servidor de origen al de destino. Si estas claves cambian, los usuarios actuales no podrán iniciar sesión y tu API de backend de .NET no se podrá conectar a la base de datos de Supabase.
+
+### C. Desplegar Edge Functions (si aplica)
+Las funciones TypeScript no residen en Postgres. Deben ser copiadas en la carpeta montada `./supabase/functions` de tu servidor o ser desplegadas de nuevo utilizando el CLI de Supabase:
+```bash
+supabase functions deploy [NOMBRE_FUNCION]
+```
+
