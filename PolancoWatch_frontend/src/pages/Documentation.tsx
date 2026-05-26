@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Cpu, Activity, HardDrive, Network, Terminal, Settings, Info, Cloud, MessageCircle, Shield } from 'lucide-react';
+import { ChevronLeft, Cpu, Activity, HardDrive, Network, Terminal, Settings, Info, Cloud, MessageCircle, Shield, Database } from 'lucide-react';
 
 export default function Documentation() {
     const navigate = useNavigate();
@@ -41,7 +41,8 @@ export default function Documentation() {
                             { id: 'architecture', label: 'Architecture', icon: Settings },
                             { id: 'security', label: 'Security', icon: Shield },
                             { id: 'metrics', label: 'Metrics', icon: Activity },
-                            { id: 'integrations', label: 'Integrations', icon: Cloud }
+                            { id: 'integrations', label: 'Integrations', icon: Cloud },
+                            { id: 'supabase', label: 'Supabase DB', icon: Database }
                         ].map(tab => (
                             <button
                                 key={tab.id}
@@ -337,6 +338,106 @@ export default function Documentation() {
                                     </div>
                                 </section>
                             </div>
+                        )}
+
+                        {activeTab === 'supabase' && (
+                            <section className="glass-panel rounded-4xl p-10 border-white/5 bg-gradient-to-br from-brand-primary/5 to-transparent animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex items-start gap-6 mb-8">
+                                    <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
+                                        <Database size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">Restauración de Supabase</h2>
+                                        <p className="text-slate-400 text-sm mt-1">Guía técnica de recuperación de Base de Datos</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-6">
+                                    <p className="text-sm leading-relaxed text-slate-300">
+                                        Para restaurar una base de datos de Supabase limpia y sin colisiones de esquemas internos o errores de permisos de triggers (debido al rol de superusuario <code className="text-brand-primary font-mono text-xs">supabase_admin</code>), ejecuta los siguientes comandos en tu servidor:
+                                    </p>
+
+                                    <div className="flex gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">1</div>
+                                        <div className="w-full">
+                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 1: Elevar Privilegios y Limpiar Esquemas</h3>
+                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                                Otorga permisos de superusuario a <strong className="text-white">postgres</strong> temporalmente para poder restaurar los triggers, y limpia las extensiones y esquemas del sistema:
+                                            </p>
+                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300 overflow-x-auto">
+                                                docker exec -i devops-supabase-dcf6e8-db psql -U supabase_admin -d postgres &lt;&lt;EOF<br/>
+                                                ALTER ROLE postgres SUPERUSER;<br/>
+                                                DROP EXTENSION IF EXISTS pg_cron CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS pg_graphql CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS pg_net CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS pgjwt CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS supabase_vault CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS pgcrypto CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS pg_stat_statements CASCADE;<br/>
+                                                DROP EXTENSION IF EXISTS vector CASCADE;<br/>
+                                                DROP PUBLICATION IF EXISTS supabase_realtime;<br/>
+                                                DROP SCHEMA IF EXISTS public CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS auth CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS storage CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS extensions CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS graphql CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS graphql_public CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS realtime CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS _realtime CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS vault CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS pgbouncer CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS supabase_functions CASCADE;<br/>
+                                                DROP SCHEMA IF EXISTS cron CASCADE;<br/>
+                                                EOF
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">2</div>
+                                        <div className="w-full">
+                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 2: Recrear Esquema Público</h3>
+                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                                Prepara la base de datos recreando el esquema principal de tu proyecto:
+                                            </p>
+                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300">
+                                                docker exec -i devops-supabase-dcf6e8-db psql -U supabase_admin -d postgres -c "CREATE SCHEMA public;"
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">3</div>
+                                        <div className="w-full">
+                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 3: Cargar el Backup SQL</h3>
+                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                                Inyecta el archivo SQL de tu copia de seguridad al contenedor de base de datos de Supabase:
+                                            </p>
+                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300">
+                                                cat /var/backups/Comodo-Supabase-Stagging.sql | docker exec -i devops-supabase-dcf6e8-db psql -U supabase_admin -d postgres
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">4</div>
+                                        <div className="w-full">
+                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 4: Revocar Privilegios de Superusuario</h3>
+                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                                Por buenas prácticas de seguridad, retira los permisos de superusuario a <strong className="text-white">postgres</strong>:
+                                            </p>
+                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300">
+                                                docker exec -i devops-supabase-dcf6e8-db psql -U supabase_admin -d postgres -c "ALTER ROLE postgres NOSUPERUSER;"
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl p-4 text-xs text-brand-secondary leading-relaxed">
+                                        <strong>Tip de Automatización:</strong> Puedes ejecutar el script <code className="text-white font-mono bg-white/5 px-1 rounded">/root/restore_db.sh</code> guardado directamente en tu servidor para automatizar todos estos pasos con un solo comando.
+                                    </div>
+                                </div>
+                            </section>
                         )}
                     </div>
 
