@@ -441,14 +441,40 @@ export default function Documentation() {
                                         
                                         <ul className="space-y-4 text-xs text-slate-300">
                                             <li className="flex flex-col gap-2">
-                                                <span><strong className="text-white">A. Archivos del Storage (Binarios):</strong> Empaqueta y restaura los archivos reales del volumen de Docker del servicio de Storage:</span>
+                                                <span><strong className="text-white">A. Archivos del Storage (Binarios) y Atributos Extendidos (xattrs):</strong> Supabase guarda el content-type en los atributos extendidos del archivo (`xattrs`). Si los comprimes o copias sin preservarlos, dará error 500 al visualizar/descargar. Usa obligatoriamente `tar --xattrs` o `rsync -aAX`:</span>
                                                 <div className="bg-obsidian-950 rounded-xl p-3 border border-white/5 font-mono text-[9px] text-slate-400 overflow-x-auto">
-                                                    # Respaldar Storage en Origen<br/>
-                                                    tar -czf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_ORIGEN]/_data .<br/><br/>
-                                                    # Restaurar Storage en Destino<br/>
-                                                    rm -rf /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/*<br/>
-                                                    tar -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/<br/>
-                                                    docker restart [CONTENEDOR_STORAGE_DESTINO]
+                                                    # --- Opción 1: Método Universal (docker cp + tar con xattrs) ---<br/>
+                                                    # Respaldar en Origen:<br/>
+                                                    docker cp [NOMBRE_CONTENEDOR_STORAGE]:/var/lib/storage /var/backups/storage_temp<br/>
+                                                    tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /var/backups/storage_temp .<br/>
+                                                    rm -rf /var/backups/storage_temp<br/><br/>
+                                                    # Restaurar en Destino:<br/>
+                                                    mkdir -p /var/backups/storage_restore<br/>
+                                                    tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/backups/storage_restore<br/>
+                                                    docker exec -u 0 [NOMBRE_CONTENEDOR_STORAGE] rm -rf /var/lib/storage/*<br/>
+                                                    docker cp /var/backups/storage_restore/. [NOMBRE_CONTENEDOR_STORAGE]:/var/lib/storage/<br/>
+                                                    rm -rf /var/backups/storage_restore<br/>
+                                                    docker restart [NOMBRE_CONTENEDOR_STORAGE]<br/><br/>
+                                                    # --- Opción 2: Método Directo en Host (Dokploy con rsync o tar con xattrs) ---<br/>
+                                                    # Respaldar en Host:<br/>
+                                                    tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage .<br/><br/>
+                                                    # Restaurar en Host:<br/>
+                                                    rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*<br/>
+                                                    tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/<br/>
+                                                    # (Alternativa directa con rsync: rsync -aAX /ruta/origen/ /ruta/destino/)<br/>
+                                                    docker restart [NOMBRE_CONTENEDOR_STORAGE]<br/><br/>
+                                                    # --- 🛠️ Reparación si los copiaste sin xattrs ---<br/>
+                                                    # Instala 'attr' en el host (apt-get install attr) y ejecuta este script Python en el host:<br/>
+                                                    # import os, json, subprocess<br/>
+                                                    # storage_dir = "/etc/dokploy/compose/[PROJECT_ID]/files/volumes/storage"<br/>
+                                                    # for root, dirs, files in os.walk(storage_dir):<br/>
+                                                    #     for file in files:<br/>
+                                                    #         if file.endswith(".json"):<br/>
+                                                    #             jp = os.path.join(root, file); fp = jp[:-5]<br/>
+                                                    #             if os.path.exists(fp):<br/>
+                                                    #                 with open(jp, 'r') as f: meta = json.load(f).get("metadata", {})<br/>
+                                                    #                 if meta.get("contentType"): subprocess.run(["setfattr", "-n", "user.supabase.content-type", "-v", meta["contentType"], fp], check=True)<br/>
+                                                    #                 if meta.get("cacheControl"): subprocess.run(["setfattr", "-n", "user.supabase.cache-control", "-v", meta["cacheControl"], fp], check=True)<br/>
                                                 </div>
                                             </li>
                                             <li className="flex flex-col gap-1">

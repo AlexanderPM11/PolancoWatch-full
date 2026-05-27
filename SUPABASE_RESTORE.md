@@ -110,23 +110,96 @@ Para restaurar los datos sin que los triggers del sistema generen registros dupl
 Para una restauración 100% funcional, la base de datos PostgreSQL no es suficiente. Debes asegurarte de restaurar los archivos físicos y la configuración.
 
 ### A. Respaldar y Restaurar Archivos Físicos (Supabase Storage)
-La base de datos contiene los metadatos (en la tabla `storage.objects`), pero los archivos reales (imágenes, documentos) se guardan en el volumen de Docker de Storage.
+La base de datos contiene únicamente los metadatos de los archivos (en la tabla `storage.objects`). Los archivos binarios reales (imágenes, documentos) se guardan físicamente en el disco o volumen montado del contenedor de Storage (`/var/lib/storage`).
 
-1. **Respaldar el Storage (Servidor de Origen):**
+#### ⚠️ IMPORTANTE: Atributos Extendidos (xattrs)
+Supabase Storage guarda el `contentType` (`user.supabase.content-type`) y `cacheControl` (`user.supabase.cache-control`) en los atributos extendidos del sistema de archivos. Si copias o comprimes el Storage sin preservar los atributos extendidos, los archivos darán error 500 en Supabase al visualizarlos o descargarlos (`"The extended attribute does not exist"` o `ENODATA`).
+
+Para respaldar y restaurar correctamente, sigue uno de estos métodos:
+
+#### Opción 1: Método Universal (Usando `docker cp` y `tar` con xattrs - Recomendado)
+Este método no requiere saber en qué ruta física del disco del servidor están los archivos, ya que se leen directamente del contenedor.
+
+1. **Respaldar el Storage (Origen):**
    ```bash
-   tar -czf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_ORIGEN]/_data .
+   # Copiar los archivos del contenedor a una carpeta temporal del host
+   docker cp [NOMBRE_CONTENEDOR_STORAGE]:/var/lib/storage /var/backups/storage_temp
+   
+   # Comprimir la carpeta temporal preservando xattrs
+   tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /var/backups/storage_temp .
+   
+   # Eliminar la carpeta temporal
+   rm -rf /var/backups/storage_temp
    ```
-2. **Restaurar el Storage (Servidor de Destino):**
+2. **Restaurar el Storage (Destino):**
    ```bash
-   # Limpiar carpeta de destino
-   rm -rf /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/*
+   # Crear carpeta temporal y extraer el backup preservando xattrs
+   mkdir -p /var/backups/storage_restore
+   tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/backups/storage_restore
    
-   # Extraer archivos binarios
-   tar -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/lib/docker/volumes/[VOLUMEN_STORAGE_DESTINO]/_data/
+   # Limpiar el directorio actual dentro del contenedor de destino
+   docker exec -u 0 [NOMBRE_CONTENEDOR_STORAGE] rm -rf /var/lib/storage/*
    
-   # Reiniciar contenedor de storage para recargar permisos
-   docker restart [CONTENEDOR_STORAGE_DESTINO]
+   # Copiar los archivos restaurados al contenedor de destino
+   docker cp /var/backups/storage_restore/. [NOMBRE_CONTENEDOR_STORAGE]:/var/lib/storage/
+   
+   # Limpiar carpeta temporal y reiniciar el contenedor para refrescar permisos
+   rm -rf /var/backups/storage_restore
+   docker restart [NOMBRE_CONTENEDOR_STORAGE]
    ```
+
+#### Opción 2: Método Directo en el Host (Ruta de Dokploy con rsync o tar con xattrs)
+Si prefieres manipular los directorios en el servidor directamente, primero localiza la ruta física ejecutando:
+```bash
+docker inspect [NOMBRE_CONTENEDOR_STORAGE] --format '{{range .Mounts}}{{if eq .Destination "/var/lib/storage"}}{{.Source}}{{end}}{{end}}'
+```
+*En tu servidor de Dokploy actual, la ruta origen es: `/etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage`*
+
+1. **Respaldar en el Host:**
+   ```bash
+   tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage .
+   ```
+2. **Restaurar en el Host:**
+   ```bash
+   # Limpiar la ruta física de destino
+   rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*
+   
+   # Descomprimir los archivos preservando xattrs
+   tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
+   
+   # O si copias directamente entre carpetas del host sin tar, usa rsync con -aAX para preservar xattrs:
+   # rsync -aAX /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
+   
+   # Reiniciar el contenedor
+   docker restart [NOMBRE_CONTENEDOR_STORAGE]
+   ```
+
+#### 🛠️ ¿Cómo solucionar si ya copiaste los archivos y faltan los atributos extendidos?
+Si ya migraste los archivos y no puedes visualizarlos/descargarlos porque perdiste los xattrs, ejecuta este script Python directamente en tu servidor para reconstruirlos a partir de los archivos `.json` de metadatos (necesita el paquete `attr` instalado: `apt-get install attr`):
+```python
+# Crear y ejecutar como script de Python en el servidor (ej: python3 restore_xattrs.py)
+import os, json, subprocess
+
+storage_dir = "/etc/dokploy/compose/[PROJECT_ID]/files/volumes/storage"
+
+for root, dirs, files in os.walk(storage_dir):
+    for file in files:
+        if file.endswith(".json"):
+            json_path = os.path.join(root, file)
+            file_path = json_path[:-5]
+            if os.path.exists(file_path):
+                try:
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        meta = json.load(f).get("metadata", {})
+                    if meta.get("contentType"):
+                        subprocess.run(["setfattr", "-n", "user.supabase.content-type", "-v", meta["contentType"], file_path], check=True)
+                    if meta.get("cacheControl"):
+                        subprocess.run(["setfattr", "-n", "user.supabase.cache-control", "-v", meta["cacheControl"], file_path], check=True)
+                    print(f"Restaurado xattrs para: {file_path}")
+                except Exception as e:
+                    print(f"Error en {file_path}: {e}")
+```
+
 
 ### B. Copiar Variables de Entorno y Claves JWT (`.env`)
 Los tokens de sesión de tus usuarios (`anon` y `service_role`) y las conexiones se firman con la clave secreta JWT configurada en el archivo `.env` o `docker-compose.yml`.
