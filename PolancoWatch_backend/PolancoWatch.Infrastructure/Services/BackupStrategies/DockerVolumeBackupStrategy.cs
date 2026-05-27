@@ -159,7 +159,7 @@ public class DockerVolumeBackupStrategy : IBackupStrategy
 
         string cmd = format == BackupFormat.Zip 
             ? $"apk add --no-cache zip && cd /data && zip -r -9 /backup/{safeFileName} ." 
-            : $"tar czf /backup/{safeFileName} -C /data .";
+            : $"apk add --no-cache tar && tar --xattrs --xattrs-include='user.supabase.*' -czf /backup/{safeFileName} -C /data .";
 
         var containerConfig = new Config
         {
@@ -326,6 +326,8 @@ public class DockerVolumeBackupStrategy : IBackupStrategy
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        startInfo.ArgumentList.Add("--xattrs");
+        startInfo.ArgumentList.Add("--xattrs-include=user.supabase.*");
         startInfo.ArgumentList.Add("-czf");
         startInfo.ArgumentList.Add(destinationFile);
         startInfo.ArgumentList.Add("-C");
