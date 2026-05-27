@@ -444,27 +444,21 @@ export default function Documentation() {
                                                 <span><strong className="text-white">A. Archivos del Storage (Binarios) y Atributos Extendidos (xattrs):</strong> Supabase guarda el content-type en los atributos extendidos del archivo (`xattrs`). Si los comprimes o copias sin preservarlos, dará error 500 al visualizar/descargar. Usa el método directo en el host con `tar` o `rsync`:</span>
                                                 <div className="bg-obsidian-950 rounded-xl p-3 border border-white/5 font-mono text-[9px] text-slate-400 overflow-x-auto">
                                                     # --- Método Recomendado (Directo en el Host VPS) ---<br/>
-                                                    # 1. Respaldar en Host (Genera backup .tar.gz con xattrs):<br/>
+                                                    # 1. Respaldar en Host:<br/>
+                                                    # [tar] Comprime el origen preservando atributos extendidos (xattrs) que guardan el contentType del archivo<br/>
                                                     tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage .<br/><br/>
                                                     # 2. Restaurar en Host Destino:<br/>
+                                                    # [rm] Borra de forma recursiva el directorio destino para evitar duplicados o archivos residuales<br/>
                                                     rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*<br/>
+                                                    # [tar] Descomprime el respaldo en el destino aplicando de nuevo todos los atributos extendidos (xattrs)<br/>
                                                     tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/<br/>
+                                                    # [chown] Cambia recursivamente el propietario a root para evitar problemas de permisos de lectura del contenedor<br/>
                                                     chown -R root:root /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage<br/>
+                                                    # [docker restart] Reinicia el contenedor de almacenamiento para que Supabase reconozca y cargue los archivos<br/>
                                                     docker restart [NOMBRE_CONTENEDOR_STORAGE]<br/><br/>
                                                     # --- Alternativa rápida local (rsync sin comprimir) ---<br/>
-                                                    # rsync -aAX /etc/dokploy/compose/[ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[ID_DESTINO]/files/volumes/storage/<br/><br/>
-                                                    # --- 🛠️ Reparación si los copiaste sin xattrs ---<br/>
-                                                    # Instala 'attr' (apt-get install attr) y corre este script Python en el host:<br/>
-                                                    # import os, json, subprocess<br/>
-                                                    # storage_dir = "/etc/dokploy/compose/[PROJECT_ID]/files/volumes/storage"<br/>
-                                                    # for root, dirs, files in os.walk(storage_dir):<br/>
-                                                    #     for file in files:<br/>
-                                                    #         if file.endswith(".json"):<br/>
-                                                    #             jp = os.path.join(root, file); fp = jp[:-5]<br/>
-                                                    #             if os.path.exists(fp):<br/>
-                                                    #                 with open(jp, 'r') as f: meta = json.load(f).get("metadata", {})<br/>
-                                                    #                 if meta.get("contentType"): subprocess.run(["setfattr", "-n", "user.supabase.content-type", "-v", meta["contentType"], fp], check=True)<br/>
-                                                    #                 if meta.get("cacheControl"): subprocess.run(["setfattr", "-n", "user.supabase.cache-control", "-v", meta["cacheControl"], fp], check=True)<br/>
+                                                    # [rsync] Copia todos los archivos directamente entre directorios locales del host conservando permisos (-a), y atributos extendidos (-A -X)<br/>
+                                                    # rsync -aAX /etc/dokploy/compose/[ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[ID_DESTINO]/files/volumes/storage/<br/>
                                                 </div>
                                             </li>
                                             <li className="flex flex-col gap-1">

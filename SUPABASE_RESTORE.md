@@ -123,57 +123,35 @@ docker inspect [NOMBRE_CONTENEDOR_STORAGE] --format '{{range .Mounts}}{{if eq .D
 ```
 *En tu servidor de Dokploy actual, la ruta de origen es: `/etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage`*
 
-#### 1. Respaldar en el Host (Genera un archivo .tar.gz preservando atributos xattrs):
+#### 1. Respaldar en el Host:
 ```bash
+# Comprime el origen preservando atributos extendidos (xattrs) que guardan el contentType del archivo
 tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage .
 ```
 
 #### 2. Restaurar en el Host Destino:
 ```bash
-# A. Limpiar el destino
+# A. Borra de forma recursiva el directorio destino para evitar duplicados o archivos residuales
 rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*
 
-# B. Descomprimir preservando atributos extendidos
+# B. Descomprime el respaldo en el destino aplicando de nuevo todos los atributos extendidos (xattrs)
 tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
 
-# C. Corregir propietario en el host y reiniciar contenedor de storage
+# C. Cambia recursivamente el propietario a root para evitar problemas de permisos de lectura del contenedor
 chown -R root:root /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage
+
+# D. Reinicia el contenedor de almacenamiento para que Supabase reconozca y cargue los archivos
 docker restart [NOMBRE_CONTENEDOR_STORAGE]
 ```
 
 > [!TIP]
 > **Alternativa directa con Rsync (Sin crear archivos .tar.gz):**
-> Si estás copiando archivos directamente entre carpetas locales del mismo VPS (o entre servidores con SSH), puedes transferirlos en un solo comando preservando permisos y xattrs con:
+> Si estás copiando archivos directamente entre carpetas locales del mismo VPS (o entre servidores con SSH), puedes transferirlos en un solo comando conservando permisos (-a), y atributos extendidos (-A -X) con:
 > ```bash
+> # Copia todos los archivos directamente entre directorios locales del host conservando permisos y xattrs
 > rsync -aAX /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
 > ```
 
-
-#### 🛠️ ¿Cómo solucionar si ya copiaste los archivos y faltan los atributos extendidos?
-Si ya migraste los archivos y no puedes visualizarlos/descargarlos porque perdiste los xattrs, ejecuta este script Python directamente en tu servidor para reconstruirlos a partir de los archivos `.json` de metadatos (necesita el paquete `attr` instalado: `apt-get install attr`):
-```python
-# Crear y ejecutar como script de Python en el servidor (ej: python3 restore_xattrs.py)
-import os, json, subprocess
-
-storage_dir = "/etc/dokploy/compose/[PROJECT_ID]/files/volumes/storage"
-
-for root, dirs, files in os.walk(storage_dir):
-    for file in files:
-        if file.endswith(".json"):
-            json_path = os.path.join(root, file)
-            file_path = json_path[:-5]
-            if os.path.exists(file_path):
-                try:
-                    with open(json_path, 'r', encoding='utf-8') as f:
-                        meta = json.load(f).get("metadata", {})
-                    if meta.get("contentType"):
-                        subprocess.run(["setfattr", "-n", "user.supabase.content-type", "-v", meta["contentType"], file_path], check=True)
-                    if meta.get("cacheControl"):
-                        subprocess.run(["setfattr", "-n", "user.supabase.cache-control", "-v", meta["cacheControl"], file_path], check=True)
-                    print(f"Restaurado xattrs para: {file_path}")
-                except Exception as e:
-                    print(f"Error en {file_path}: {e}")
-```
 
 
 ### B. Copiar Variables de Entorno y Claves JWT (`.env`)
