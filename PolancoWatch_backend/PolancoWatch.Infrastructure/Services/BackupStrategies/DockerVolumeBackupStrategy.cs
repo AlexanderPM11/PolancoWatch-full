@@ -59,9 +59,13 @@ public class DockerVolumeBackupStrategy : IBackupStrategy
 
         try
         {
-            if (isDockerVolume)
+            bool useHelperContainer = isDockerVolume || 
+                                      (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !string.IsNullOrEmpty(context.TargetPath));
+
+            if (useHelperContainer)
             {
-                await CreateDockerVolumeArchiveAsync(volumeName, destinationPath, context.Format);
+                string bindSource = isDockerVolume ? volumeName : context.TargetPath;
+                await CreateDockerVolumeArchiveAsync(bindSource, destinationPath, context.Format);
             }
             else
             {
