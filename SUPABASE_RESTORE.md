@@ -142,6 +142,9 @@ chown -R root:root /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/stora
 
 # D. Reinicia el contenedor de almacenamiento para que Supabase reconozca y cargue los archivos
 docker restart [NOMBRE_CONTENEDOR_STORAGE]
+
+# E. Opcional: Elimina el archivo de respaldo temporal del host para liberar espacio en disco
+rm -f /var/backups/supabase-storage-backup.tar.gz
 ```
 
 > [!TIP]
