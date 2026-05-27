@@ -457,7 +457,7 @@ const Backups = () => {
             const finalTarget = newBackupTarget ? `${newBackupTarget}::${newBackupDbName || ""}::${newBackupDbUser}::${newBackupDbPass}` : undefined;
             await backupService.triggerDatabaseBackup('Zip', finalTarget, syncToCloud, cloudFolderId || undefined, newBackupName || undefined, keepLocal, newBackupRetention, newBackupSendTelegram);
           } else {
-            await backupService.triggerVolumeBackup(newBackupTarget, 'Zip', syncToCloud, cloudFolderId || undefined, newBackupName || undefined, keepLocal, newBackupRetention, newBackupSendTelegram);
+            await backupService.triggerVolumeBackup(newBackupTarget, 'TarGz', syncToCloud, cloudFolderId || undefined, newBackupName || undefined, keepLocal, newBackupRetention, newBackupSendTelegram);
           }
           setNewBackupName("");
           showToast("Backup initiated successfully", "success");
@@ -495,7 +495,7 @@ const Backups = () => {
         type: newSchedType,
         target: newSchedType === 1 && newSchedTarget ? `${newSchedTarget}::${newSchedDbName || ""}::${newSchedDbUser}::${newSchedDbPass}` : (newSchedTarget || undefined),
         intervalMinutes: schedStrategy === 'interval' ? newSchedInterval : 0,
-        format: 0,
+        format: newSchedType === 0 ? 1 : 0,
         isActive: true,
         useCron: schedStrategy === 'calendar',
         cronExpression,
