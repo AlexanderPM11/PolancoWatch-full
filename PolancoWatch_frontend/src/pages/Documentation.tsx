@@ -1,6 +1,67 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Cpu, Activity, HardDrive, Network, Terminal, Settings, Info, Cloud, MessageCircle, Shield, Database } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  Cpu, 
+  Activity, 
+  HardDrive, 
+  Network, 
+  Terminal, 
+  Settings, 
+  Info, 
+  Cloud, 
+  MessageCircle, 
+  Shield, 
+  Database,
+  Copy,
+  Check
+} from 'lucide-react';
+
+interface CodeBlockProps {
+  code: string;
+  language?: string;
+}
+
+function CodeBlock({ code, language = "BASH" }: CodeBlockProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  return (
+    <div className="bg-[#05070B] border border-white/10 rounded-2xl overflow-hidden font-mono text-[13px] my-5 shadow-2xl animate-in fade-in duration-300">
+      <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/10 select-none">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-3">{language}</span>
+        </div>
+        <button 
+          onClick={handleCopy}
+          className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border transition-all flex items-center gap-1.5 ${
+            copied 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          {copied ? <Check size={10} /> : <Copy size={10} />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="p-5 overflow-x-auto text-slate-300 leading-relaxed max-w-full custom-scrollbar">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
 
 export default function Documentation() {
     const navigate = useNavigate();
@@ -20,7 +81,7 @@ export default function Documentation() {
                         </button>
                         <div className="flex items-center gap-3 opacity-50">
                             <Terminal size={14} className="text-brand-primary" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">REF_DOCS_v1.5</span>
+                            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">REF_DOCS_v1.6</span>
                         </div>
                     </div>
 
@@ -71,38 +132,39 @@ export default function Documentation() {
                                         <Activity size={28} />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">System Architecture</h2>
-                                        <p className="text-slate-400 text-sm mt-1">Real-time Data Pipeline & Orchestration</p>
+                                        <h2 className="text-3xl font-black text-white tracking-tight uppercase">System Architecture</h2>
+                                        <p className="text-slate-400 text-base mt-1">Real-time Data Pipeline & Orchestration</p>
                                     </div>
                                 </div>
                                 
                                 <div className="grid md:grid-cols-2 gap-12">
                                     <div>
-                                        <h3 className="text-xs font-black text-brand-secondary uppercase tracking-widest mb-4">Backend Core</h3>
-                                        <p className="text-sm leading-relaxed mb-4 text-slate-300">
-                                            Built on <span className="text-white font-bold">ASP.NET Core 8</span>, the backend operates as a distributed-ready API. It features a <span className="text-brand-primary">SystemMetricsHostedService</span> that heartbeats every 2 seconds, scraping OS-level telemetry.
+                                        <h3 className="text-sm font-black text-brand-secondary uppercase tracking-widest mb-4">Backend Core</h3>
+                                        <p className="text-base leading-relaxed mb-4 text-slate-300">
+                                            Built on <span className="text-white font-bold">ASP.NET Core 8</span>, the backend operates as a distributed-ready API. It features a <span className="text-brand-primary font-bold">SystemMetricsHostedService</span> that heartbeats every 2 seconds, scraping OS-level telemetry.
                                         </p>
-                                        <ul className="space-y-3">
-                                            <li className="flex gap-3 text-sm">
-                                                <div className="w-1 h-1 rounded-full bg-brand-primary mt-2"></div>
+                                        <ul className="space-y-3 text-slate-300">
+                                            <li className="flex gap-3 text-base">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-2.5 flex-shrink-0"></div>
                                                 <span><strong className="text-white">SignalR Hub:</strong> Direct WebSocket streaming for sub-second UI latency.</span>
                                             </li>
-                                            <li className="flex gap-3 text-sm">
-                                                <div className="w-1 h-1 rounded-full bg-brand-primary mt-2"></div>
+                                            <li className="flex gap-3 text-base">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-2.5 flex-shrink-0"></div>
                                                 <span><strong className="text-white">Background Workers:</strong> Decoupled threshold evaluation for instant alerting.</span>
                                             </li>
                                         </ul>
                                     </div>
                                     <div>
-                                        <h3 className="text-xs font-black text-brand-secondary uppercase tracking-widest mb-4">Data Persistence</h3>
-                                        <p className="text-sm leading-relaxed mb-4 text-slate-300">
-                                            Utilizes a lightweight <span className="text-brand-primary">SQLite</span> instance for configuration and event logging, ensuring zero-configuration deployment while maintaining ACID compliance.
+                                        <h3 className="text-sm font-black text-brand-secondary uppercase tracking-widest mb-4">Data Persistence</h3>
+                                        <p className="text-base leading-relaxed mb-4 text-slate-300">
+                                            Utilizes a lightweight <span className="text-brand-primary font-bold">SQLite</span> instance for configuration and event logging, ensuring zero-configuration deployment while maintaining ACID compliance.
                                         </p>
-                                        <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[11px]">
-                                            <div className="text-slate-500">// Infrastructure Layer</div>
-                                            <div className="text-white">Entity Framework Core + SQLite</div>
-                                            <div className="text-brand-secondary">Automated Database Evolution</div>
-                                        </div>
+                                        <CodeBlock 
+                                          language="CONFIG" 
+                                          code={`// Infrastructure Layer
+Entity Framework Core + SQLite
+Automated Database Evolution`}
+                                        />
                                     </div>
                                 </div>
                             </section>
@@ -115,31 +177,33 @@ export default function Documentation() {
                                         <Shield size={28} />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">Security & Privacy</h2>
-                                        <p className="text-slate-400 text-sm mt-1">Credential Safety & Session Integrity</p>
+                                        <h2 className="text-3xl font-black text-white tracking-tight uppercase">Security & Privacy</h2>
+                                        <p className="text-slate-400 text-base mt-1">Credential Safety & Session Integrity</p>
                                     </div>
                                 </div>
                                 
                                 <div className="grid md:grid-cols-2 gap-12">
                                     <div>
-                                        <h3 className="text-xs font-black text-emerald-500 uppercase tracking-widest mb-4">Credential Protection</h3>
-                                        <p className="text-sm leading-relaxed mb-4 text-slate-300">
+                                        <h3 className="text-sm font-black text-emerald-500 uppercase tracking-widest mb-4">Credential Protection</h3>
+                                        <p className="text-base leading-relaxed mb-4 text-slate-300">
                                             Passwords are never stored in plain text. We utilize the <span className="text-white font-bold">BCrypt.Net</span> adaptive hashing algorithm, which incorporates a per-user salt and computational cost factor to nullify brute-force and rainbow table attacks.
                                         </p>
-                                        <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[11px]">
-                                            <div className="text-slate-500">// One-Way Cryptographic Hash</div>
-                                            <div className="text-emerald-500">BCrypt.HashPassword(raw_password)</div>
-                                        </div>
+                                        <CodeBlock 
+                                          language="C#" 
+                                          code={`// One-Way Cryptographic Hash
+string secureHash = BCrypt.Net.BCrypt.HashPassword(rawPassword);`}
+                                        />
                                     </div>
                                     <div>
-                                        <h3 className="text-xs font-black text-emerald-500 uppercase tracking-widest mb-4">Session Authorization</h3>
-                                        <p className="text-sm leading-relaxed mb-4 text-slate-300">
+                                        <h3 className="text-sm font-black text-emerald-500 uppercase tracking-widest mb-4">Session Authorization</h3>
+                                        <p className="text-base leading-relaxed mb-4 text-slate-300">
                                             Stateless authentication is handled via <span className="text-white font-bold">JSON Web Tokens (JWT)</span>. Each request to sensitive endpoints must include a signed token, ensuring that your monitoring data remains inaccessible to unauthorized actors.
                                         </p>
-                                        <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[11px]">
-                                            <div className="text-slate-500">// Algorithm: HMAC-SHA256</div>
-                                            <div className="text-white">Authorization: Bearer [JWT_TOKEN]</div>
-                                        </div>
+                                        <CodeBlock 
+                                          language="HTTP" 
+                                          code={`// Algorithm: HMAC-SHA256
+Authorization: Bearer [JWT_TOKEN]`}
+                                        />
                                     </div>
                                 </div>
                             </section>
@@ -151,47 +215,49 @@ export default function Documentation() {
                                 <section className="glass-panel rounded-4xl p-10 border-white/5">
                                     <div className="flex items-center gap-4 mb-6">
                                         <Cpu className="text-brand-primary" size={24} />
-                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">CPU Tracking</h2>
+                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">CPU Tracking</h2>
                                     </div>
-                                    <p className="text-sm text-slate-400 leading-relaxed mb-6">
-                                        Derived from <code className="text-brand-primary font-mono text-[10px] bg-white/5 px-1 rounded">/proc/stat</code> (Linux) and <code className="text-brand-primary font-mono text-[10px] bg-white/5 px-1 rounded">PercCounter</code> (Win).
+                                    <p className="text-base text-slate-300 leading-relaxed mb-6">
+                                        Derived from <code className="text-brand-primary font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded">/proc/stat</code> (Linux) and <code className="text-brand-primary font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded">PercCounter</code> (Win).
                                     </p>
-                                    <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-brand-secondary">
-                                        Usage% = (1.0 - (deltaIdle / deltaTotal)) * 100
-                                    </div>
+                                    <CodeBlock 
+                                      language="MATH" 
+                                      code={`Usage% = (1.0 - (deltaIdle / deltaTotal)) * 100`}
+                                    />
                                 </section>
 
                                 {/* Memory */}
                                 <section className="glass-panel rounded-4xl p-10 border-white/5">
                                     <div className="flex items-center gap-4 mb-6">
                                         <Activity className="text-brand-secondary" size={24} />
-                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">RAM Analysis</h2>
+                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">RAM Analysis</h2>
                                     </div>
-                                    <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                                    <p className="text-base text-slate-300 leading-relaxed mb-6">
                                         Total memory minus available pages (including reclaimable cache).
                                     </p>
-                                    <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-brand-primary">
-                                        Used = MemTotal - MemAvailable
-                                    </div>
+                                    <CodeBlock 
+                                      language="MATH" 
+                                      code={`Used = MemTotal - MemAvailable`}
+                                    />
                                 </section>
 
                                 {/* Networking */}
                                 <section className="glass-panel rounded-4xl p-10 border-white/5">
                                     <div className="flex items-center gap-4 mb-6">
                                         <Network className="text-brand-secondary" size={24} />
-                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">Networking</h2>
+                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">Networking</h2>
                                     </div>
                                     <ul className="space-y-4">
                                         <li className="flex gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-secondary mt-1.5"></div>
-                                            <div className="text-sm">
-                                                <span className="text-white font-bold">Linux:</span> Byte-level delta of <code className="text-brand-secondary font-mono text-[10px]">/proc/net/dev</code>.
+                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-secondary mt-2 flex-shrink-0"></div>
+                                            <div className="text-base text-slate-300">
+                                                <span className="text-white font-bold">Linux:</span> Byte-level delta of <code className="text-brand-secondary font-mono text-xs bg-white/5 px-1 rounded">/proc/net/dev</code>.
                                             </div>
                                         </li>
                                         <li className="flex gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-secondary mt-1.5"></div>
-                                            <div className="text-sm">
-                                                <span className="text-white font-bold">Windows:</span> Native <code className="text-brand-secondary font-mono text-[10px]">GetIPStatistics</code> polling.
+                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-secondary mt-2 flex-shrink-0"></div>
+                                            <div className="text-base text-slate-300">
+                                                <span className="text-white font-bold">Windows:</span> Native <code className="text-brand-secondary font-mono text-xs bg-white/5 px-1 rounded">GetIPStatistics</code> polling.
                                             </div>
                                         </li>
                                     </ul>
@@ -201,18 +267,18 @@ export default function Documentation() {
                                 <section className="glass-panel rounded-4xl p-10 border-white/5">
                                     <div className="flex items-center gap-4 mb-6">
                                         <HardDrive className="text-brand-primary" size={24} />
-                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">Storage</h2>
+                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">Storage</h2>
                                     </div>
                                     <ul className="space-y-4">
                                         <li className="flex gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-1.5"></div>
-                                            <div className="text-sm">
-                                                <span className="text-white font-bold">Driver:</span> Cross-platform <code className="text-brand-primary font-mono text-[10px]">DriveInfo</code> API.
+                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-2 flex-shrink-0"></div>
+                                            <div className="text-base text-slate-300">
+                                                <span className="text-white font-bold">Driver:</span> Cross-platform <code className="text-brand-primary font-mono text-xs bg-white/5 px-1 rounded">DriveInfo</code> API.
                                             </div>
                                         </li>
                                         <li className="flex gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-1.5"></div>
-                                            <div className="text-sm">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-2 flex-shrink-0"></div>
+                                            <div className="text-base text-slate-300">
                                                 <span className="text-white font-bold">Filter:</span> Intelligent exclusion of system virtual mounts.
                                             </div>
                                         </li>
@@ -230,62 +296,63 @@ export default function Documentation() {
                                             <Cloud size={28} />
                                         </div>
                                         <div>
-                                            <h2 className="text-2xl font-black text-white tracking-tight uppercase">Google Drive Integration</h2>
-                                            <p className="text-slate-400 text-sm mt-1">Automated Cloud Backups Setup</p>
+                                            <h2 className="text-3xl font-black text-white tracking-tight uppercase">Google Drive Integration</h2>
+                                            <p className="text-slate-400 text-base mt-1">Automated Cloud Backups Setup</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-6">
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-xs border border-brand-secondary/30">1</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-sm border border-brand-secondary/30">1</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Create Google Cloud Project</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
-                                                    Go to the <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="text-brand-secondary hover:underline">Google Cloud Console</a>. Create a new project, then navigate to <strong className="text-white">APIs & Services &gt; Library</strong> and enable the <strong className="text-white">Google Drive API</strong>.
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Create Google Cloud Project</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
+                                                    Go to the <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="text-brand-secondary hover:underline font-bold">Google Cloud Console</a>. Create a new project, then navigate to <strong className="text-white">APIs & Services &gt; Library</strong> and enable the <strong className="text-white">Google Drive API</strong>.
                                                 </p>
                                             </div>
                                         </div>
                                         
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-xs border border-brand-secondary/30">2</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-sm border border-brand-secondary/30">2</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Configure OAuth Consent Screen</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Configure OAuth Consent Screen</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
                                                     Go to <strong className="text-white">OAuth consent screen</strong>. Set User Type to <strong className="text-white">External</strong> (or Internal if using Google Workspace). Fill in the required app details. Add your email as a Test User if your publishing status is "Testing".
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-xs border border-brand-secondary/30">3</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-sm border border-brand-secondary/30">3</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Generate Credentials</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
-                                                    Go to <strong className="text-white">Credentials &gt; Create Credentials &gt; OAuth client ID</strong>. Choose <strong className="text-white">Web application</strong>. Under "Authorized redirect URIs", add: <code className="text-brand-secondary font-mono text-[10px] bg-white/5 px-1 py-0.5 rounded ml-1">http://your-domain.com/api/backups/drive/callback</code> (replace with your actual domain/port).
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Generate Credentials</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
+                                                    Go to <strong className="text-white">Credentials &gt; Create Credentials &gt; OAuth client ID</strong>. Choose <strong className="text-white">Web application</strong>. Under "Authorized redirect URIs", add: <code className="text-brand-secondary font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded ml-1">http://your-domain.com/api/backups/drive/callback</code> (replace with your actual domain/port).
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-xs border border-brand-secondary/30">4</div>
-                                            <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Update Environment Variables</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
-                                                    Copy the Client ID and Client Secret generated by Google. Add them to your <code className="text-brand-secondary font-mono text-[10px] bg-white/5 px-1 py-0.5 rounded">.env</code> file for the backend container:
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-sm border border-brand-secondary/30">4</div>
+                                            <div className="w-full">
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Update Environment Variables</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
+                                                    Copy the Client ID and Client Secret generated by Google. Add them to your <code className="text-brand-secondary font-mono text-xs bg-white/5 px-1 py-0.5 rounded">.env</code> file for the backend container:
                                                 </p>
-                                                <div className="bg-obsidian-950 rounded-xl p-4 mt-2 border border-white/5 font-mono text-[10px] text-slate-300">
-                                                    <span className="text-brand-primary">GOOGLE_DRIVE_CLIENT_ID</span>=your-client-id.apps.googleusercontent.com<br/>
-                                                    <span className="text-brand-primary">GOOGLE_DRIVE_CLIENT_SECRET</span>=your-client-secret<br/>
-                                                    <span className="text-brand-primary">GOOGLE_DRIVE_REDIRECT_URI</span>=https://api.yourdomain.com/api/backups/drive/callback
-                                                </div>
+                                                <CodeBlock 
+                                                  language="ENV" 
+                                                  code={`GOOGLE_DRIVE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_DRIVE_CLIENT_SECRET=your-client-secret
+GOOGLE_DRIVE_REDIRECT_URI=https://api.yourdomain.com/api/backups/drive/callback`}
+                                                />
                                             </div>
                                         </div>
 
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-xs border border-brand-secondary/30">5</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-sm border border-brand-secondary/30">5</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Link Account</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Link Account</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
                                                     Restart your Docker containers to load the new env vars. Go to the <strong className="text-white">Backups</strong> tab in PolancoWatch, click <strong className="text-white">Connect Google Drive</strong>, and authorize the application.
                                                 </p>
                                             </div>
@@ -300,37 +367,37 @@ export default function Documentation() {
                                             <MessageCircle size={28} />
                                         </div>
                                         <div>
-                                            <h2 className="text-2xl font-black text-white tracking-tight uppercase">Telegram Notifications</h2>
-                                            <p className="text-slate-400 text-sm mt-1">Real-time alerts directly to your phone</p>
+                                            <h2 className="text-3xl font-black text-white tracking-tight uppercase">Telegram Notifications</h2>
+                                            <p className="text-slate-400 text-base mt-1">Real-time alerts directly to your phone</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-6">
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0088cc]/20 flex items-center justify-center text-[#0088cc] font-black text-xs border border-[#0088cc]/30">1</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#0088cc]/20 flex items-center justify-center text-[#0088cc] font-black text-sm border border-[#0088cc]/30">1</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Create a Telegram Bot</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
-                                                    Open Telegram and search for <strong className="text-white">@BotFather</strong>. Send the command <code className="text-[#0088cc] font-mono text-[10px] bg-white/5 px-1 py-0.5 rounded">/newbot</code> and follow the instructions to choose a name and username. BotFather will give you an <strong className="text-white">HTTP API Token</strong>. Save this securely.
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Create a Telegram Bot</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
+                                                    Open Telegram and search for <strong className="text-white font-bold">@BotFather</strong>. Send the command <code className="text-[#0088cc] font-mono text-xs bg-white/5 px-1 py-0.5 rounded">/newbot</code> and follow the instructions to choose a name and username. BotFather will give you an <strong className="text-white">HTTP API Token</strong>. Save this securely.
                                                 </p>
                                             </div>
                                         </div>
                                         
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0088cc]/20 flex items-center justify-center text-[#0088cc] font-black text-xs border border-[#0088cc]/30">2</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#0088cc]/20 flex items-center justify-center text-[#0088cc] font-black text-sm border border-[#0088cc]/30">2</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Get your Chat ID</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
-                                                    Start a chat with your new bot by sending it a <code className="text-[#0088cc] font-mono text-[10px] bg-white/5 px-1 py-0.5 rounded">/start</code> message. Then, search for <strong className="text-white">@userinfobot</strong> or <strong className="text-white">@RawDataBot</strong> in Telegram, or use the API: <code className="text-[#0088cc] font-mono text-[10px] bg-white/5 px-1 py-0.5 rounded ml-1">https://api.telegram.org/bot&lt;YourBOTToken&gt;/getUpdates</code> to find your numeric Chat ID.
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Get your Chat ID</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
+                                                    Start a chat with your new bot by sending it a <code className="text-[#0088cc] font-mono text-xs bg-white/5 px-1 py-0.5 rounded">/start</code> message. Then, search for <strong className="text-white font-bold">@userinfobot</strong> or <strong className="text-white font-bold">@RawDataBot</strong> in Telegram, or use the API: <code className="text-[#0088cc] font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded ml-1">https://api.telegram.org/bot&lt;YourBOTToken&gt;/getUpdates</code> to find your Chat ID.
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0088cc]/20 flex items-center justify-center text-[#0088cc] font-black text-xs border border-[#0088cc]/30">3</div>
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#0088cc]/20 flex items-center justify-center text-[#0088cc] font-black text-sm border border-[#0088cc]/30">3</div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Configure PolancoWatch</h3>
-                                                <p className="text-xs text-slate-400 leading-relaxed">
+                                                <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Configure PolancoWatch</h3>
+                                                <p className="text-sm text-slate-400 leading-relaxed">
                                                     Go to the <strong className="text-white">Settings</strong> page in your PolancoWatch dashboard. Navigate to the Notifications section, enable Telegram, and paste your <strong className="text-white">Bot Token</strong> y <strong className="text-white">Chat ID</strong>. Click Save Settings. Test the connection by triggering an alert or backing up manually.
                                                 </p>
                                             </div>
@@ -347,128 +414,135 @@ export default function Documentation() {
                                         <Database size={28} />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">Restauración de Supabase</h2>
-                                        <p className="text-slate-400 text-sm mt-1">Guía técnica de recuperación de Base de Datos</p>
+                                        <h2 className="text-3xl font-black text-white tracking-tight uppercase">Restauración de Supabase</h2>
+                                        <p className="text-slate-400 text-base mt-1">Guía técnica de recuperación de Base de Datos y Storage</p>
                                     </div>
                                 </div>
                                 
-                                <div className="space-y-6">
-                                    <p className="text-sm leading-relaxed text-slate-300">
-                                        Para restaurar una base de datos de Supabase limpia y sin colisiones de esquemas internos o errores de permisos de triggers (debido al rol de superusuario <code className="text-brand-primary font-mono text-xs">supabase_admin</code>), ejecuta los siguientes comandos en tu servidor:
+                                <div className="space-y-8">
+                                    <p className="text-base leading-relaxed text-slate-300">
+                                        Para restaurar una base de datos de Supabase limpia y sin colisiones de esquemas internos o errores de permisos de triggers (debido al rol de superusuario <code className="text-brand-primary font-mono text-xs bg-white/5 px-1 py-0.5 rounded">supabase_admin</code>), ejecuta los siguientes comandos en tu servidor:
                                     </p>
 
                                     <div className="flex gap-4">
-                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">1</div>
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-sm border border-brand-primary/30">1</div>
                                         <div className="w-full">
-                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 1: Elevar Privilegios y Limpiar Esquemas</h3>
-                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                            <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Paso 1: Elevar Privilegios y Limpiar Esquemas</h3>
+                                            <p className="text-sm text-slate-400 leading-relaxed">
                                                 Otorga permisos de superusuario a <strong className="text-white">postgres</strong> temporalmente para poder restaurar los triggers, y limpia las extensiones y esquemas del sistema:
                                             </p>
-                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300 overflow-x-auto">
-                                                docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres &lt;&lt;EOF<br/>
-                                                ALTER ROLE postgres SUPERUSER;<br/>
-                                                DROP EXTENSION IF EXISTS pg_cron CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS pg_graphql CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS pg_net CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS pgjwt CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS supabase_vault CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS pgcrypto CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS pg_stat_statements CASCADE;<br/>
-                                                DROP EXTENSION IF EXISTS vector CASCADE;<br/>
-                                                DROP PUBLICATION IF EXISTS supabase_realtime;<br/>
-                                                DROP SCHEMA IF EXISTS public CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS auth CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS storage CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS extensions CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS graphql CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS graphql_public CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS realtime CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS _realtime CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS vault CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS pgbouncer CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS supabase_functions CASCADE;<br/>
-                                                DROP SCHEMA IF EXISTS cron CASCADE;<br/>
-                                                EOF
-                                            </div>
+                                            <CodeBlock 
+                                              language="BASH" 
+                                              code={`docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres <<EOF
+ALTER ROLE postgres SUPERUSER;
+DROP EXTENSION IF EXISTS pg_cron CASCADE;
+DROP EXTENSION IF EXISTS pg_graphql CASCADE;
+DROP EXTENSION IF EXISTS pg_net CASCADE;
+DROP EXTENSION IF EXISTS pgjwt CASCADE;
+DROP EXTENSION IF EXISTS supabase_vault CASCADE;
+DROP EXTENSION IF EXISTS pgcrypto CASCADE;
+DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE;
+DROP EXTENSION IF EXISTS pg_stat_statements CASCADE;
+DROP EXTENSION IF EXISTS vector CASCADE;
+DROP PUBLICATION IF EXISTS supabase_realtime;
+DROP SCHEMA IF EXISTS public CASCADE;
+DROP SCHEMA IF EXISTS auth CASCADE;
+DROP SCHEMA IF EXISTS storage CASCADE;
+DROP SCHEMA IF EXISTS extensions CASCADE;
+DROP SCHEMA IF EXISTS graphql CASCADE;
+DROP SCHEMA IF EXISTS graphql_public CASCADE;
+DROP SCHEMA IF EXISTS realtime CASCADE;
+DROP SCHEMA IF EXISTS _realtime CASCADE;
+DROP SCHEMA IF EXISTS vault CASCADE;
+DROP SCHEMA IF EXISTS pgbouncer CASCADE;
+DROP SCHEMA IF EXISTS supabase_functions CASCADE;
+DROP SCHEMA IF EXISTS cron CASCADE;
+EOF`}
+                                            />
                                         </div>
                                     </div>
 
                                     <div className="flex gap-4">
-                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">2</div>
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-sm border border-brand-primary/30">2</div>
                                         <div className="w-full">
-                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 2: Recrear Esquema Público</h3>
-                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                            <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Paso 2: Recrear Esquema Público</h3>
+                                            <p className="text-sm text-slate-400 leading-relaxed">
                                                 Prepara la base de datos recreando el esquema principal de tu proyecto:
                                             </p>
-                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300">
-                                                docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres -c "CREATE SCHEMA public;"
-                                            </div>
+                                            <CodeBlock 
+                                              language="BASH" 
+                                              code={`docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres -c "CREATE SCHEMA public;"`}
+                                            />
                                         </div>
                                     </div>
 
                                     <div className="flex gap-4">
-                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">3</div>
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-sm border border-brand-primary/30">3</div>
                                         <div className="w-full">
-                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 3: Cargar el Backup SQL</h3>
-                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                            <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Paso 3: Cargar el Backup SQL</h3>
+                                            <p className="text-sm text-slate-400 leading-relaxed">
                                                 Inyecta el archivo SQL de tu copia de seguridad al contenedor de base de datos de Supabase:
                                             </p>
-                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300">
-                                                cat /var/backups/Comodo-Supabase-Stagging.sql | docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres
-                                            </div>
+                                            <CodeBlock 
+                                              language="BASH" 
+                                              code={`cat /var/backups/Comodo-Supabase-Stagging.sql | docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres`}
+                                            />
                                         </div>
                                     </div>
 
                                     <div className="flex gap-4">
-                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs border border-brand-primary/30">4</div>
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-sm border border-brand-primary/30">4</div>
                                         <div className="w-full">
-                                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Paso 4: Revocar Privilegios de Superusuario</h3>
-                                            <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                            <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-2">Paso 4: Revocar Privilegios de Superusuario</h3>
+                                            <p className="text-sm text-slate-400 leading-relaxed">
                                                 Por buenas prácticas de seguridad, retira los permisos de superusuario a <strong className="text-white">postgres</strong>:
                                             </p>
-                                            <div className="bg-obsidian-950 rounded-xl p-4 border border-white/5 font-mono text-[10px] text-slate-300">
-                                                docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres -c "ALTER ROLE postgres NOSUPERUSER;"
-                                            </div>
+                                            <CodeBlock 
+                                              language="BASH" 
+                                              code={`docker exec -i [NOMBRE_CONTENEDOR_DB] psql -U supabase_admin -d postgres -c "ALTER ROLE postgres NOSUPERUSER;"`}
+                                            />
                                         </div>
                                     </div>
                                     
-                                    <div className="border-t border-white/5 pt-6 mt-6">
-                                        <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">5. Restauración Completa (Storage y Secretos)</h3>
-                                        <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                                    <div className="border-t border-white/5 pt-8 mt-8">
+                                        <h3 className="text-2xl font-black text-white uppercase tracking-widest mb-4">5. Restauración Completa (Storage y Secretos)</h3>
+                                        <p className="text-base text-slate-300 leading-relaxed mb-4">
                                             La base de datos contiene los metadatos, pero para una restauración completa necesitas migrar los archivos físicos del Storage y mantener las claves de seguridad:
                                         </p>
                                         
-                                        <ul className="space-y-4 text-xs text-slate-300">
+                                        <ul className="space-y-6 text-base text-slate-300">
                                             <li className="flex flex-col gap-2">
                                                 <span><strong className="text-white">A. Archivos del Storage (Binarios) y Atributos Extendidos (xattrs):</strong> Supabase guarda el content-type en los atributos extendidos del archivo (`xattrs`). Si los comprimes o copias sin preservarlos, dará error 500 al visualizar/descargar. Usa el método directo en el host con `tar` o `rsync`:</span>
-                                                <div className="bg-obsidian-950 rounded-xl p-3 border border-white/5 font-mono text-[9px] text-slate-400 overflow-x-auto">
-                                                    # --- Método Recomendado (Directo en el Host VPS) ---<br/>
-                                                    # 1. Respaldar en Host:<br/>
-                                                    # [tar] Comprime el origen preservando atributos extendidos (xattrs) que guardan el contentType del archivo<br/>
-                                                    tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage .<br/><br/>
-                                                    # 2. Restaurar en Host Destino:<br/>
-                                                    # [rm] Borra de forma recursiva el directorio destino para evitar duplicados o archivos residuales<br/>
-                                                    rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*<br/>
-                                                    # [tar] Descomprime el respaldo en el destino aplicando de nuevo todos los atributos extendidos (xattrs)<br/>
-                                                    tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/<br/>
-                                                    # [chown] Cambia recursivamente el propietario a root para evitar problemas de permisos de lectura del contenedor<br/>
-                                                    chown -R root:root /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage<br/>
-                                                    # [docker restart] Reinicia el contenedor de almacenamiento para que Supabase reconozca y cargue los archivos<br/>
-                                                    docker restart [NOMBRE_CONTENEDOR_STORAGE]<br/><br/>
-                                                    # --- Alternativa rápida local (rsync sin comprimir) ---<br/>
-                                                    # [rsync] Copia todos los archivos directamente entre directorios locales del host conservando permisos (-a), y atributos extendidos (-A -X)<br/>
-                                                    # rsync -aAX /etc/dokploy/compose/[ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[ID_DESTINO]/files/volumes/storage/<br/>
-                                                </div>
+                                                <CodeBlock 
+                                                  language="BASH / HOST"
+                                                  code={`# --- Método Recomendado (Directo en el Host VPS) ---
+# 1. Respaldar en Host:
+# [tar] Comprime el origen preservando atributos extendidos (xattrs) que guardan el contentType del archivo
+tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage .
+
+# 2. Restaurar en Host Destino:
+# [rm] Borra de forma recursiva el directorio destino para evitar duplicados o archivos residuales
+rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*
+# [tar] Descomprime el respaldo en el destino aplicando de nuevo todos los atributos extendidos (xattrs)
+tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
+# [chown] Cambia recursivamente el propietario a root para evitar problemas de permisos de lectura del contenedor
+chown -R root:root /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage
+# [docker restart] Reinicia el contenedor de almacenamiento para que Supabase reconozca y cargue los archivos
+docker restart [NOMBRE_CONTENEDOR_STORAGE]
+
+# --- Alternativa rápida local (rsync sin comprimir) ---
+# [rsync] Copia todos los archivos directamente entre directorios locales del host conservando permisos (-a), y atributos extendidos (-A -X)
+# rsync -aAX /etc/dokploy/compose/[ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[ID_DESTINO]/files/volumes/storage/`}
+                                                />
                                             </li>
                                             <li className="flex flex-col gap-1">
-                                                <span><strong className="text-white">B. Variables de Entorno y JWT (.env):</strong> Copia exactamente las mismas claves de firma de JWT (`anon`, `service_role`) y las contraseñas del archivo <code className="text-brand-primary font-mono text-[10px] bg-white/5 px-1 rounded">.env</code> de origen a destino. De lo contrario, las sesiones activas de tus usuarios se invalidarán y el backend de .NET no se podrá conectar a la base de datos de Supabase.</span>
+                                                <span><strong className="text-white">B. Variables de Entorno y JWT (.env):</strong> Copia exactamente las mismas claves de firma de JWT (`anon`, `service_role`) y las contraseñas del archivo <code className="text-brand-primary font-mono text-xs bg-white/5 px-1 py-0.5 rounded font-bold">.env</code> de origen a destino. De lo contrario, las sesiones activas de tus usuarios se invalidarán y el backend de .NET no se podrá conectar a la base de datos de Supabase.</span>
                                             </li>
                                         </ul>
                                     </div>
 
-                                    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl p-4 text-xs text-brand-secondary leading-relaxed">
-                                        <strong>Tip de Automatización:</strong> Puedes ejecutar el script <code className="text-white font-mono bg-white/5 px-1 rounded">/root/restore_db.sh</code> guardado directamente en tu servidor para automatizar todos estos pasos con un solo comando.
+                                    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl p-5 text-sm text-brand-secondary leading-relaxed">
+                                        <strong>Tip de Automatización:</strong> Puedes ejecutar el script <code className="text-white font-mono bg-white/5 px-1.5 py-0.5 rounded font-bold">/root/restore_db.sh</code> guardado directamente en tu servidor para automatizar todos estos pasos con un solo comando.
                                     </div>
                                 </div>
                             </section>
@@ -478,7 +552,7 @@ export default function Documentation() {
                     {/* Infrastructure Footer */}
                     <footer className="pt-16 border-t border-white/5 text-center">
                         <div className="inline-flex items-center gap-3 text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">
-                            <Settings size={14} className="animate-spin-slow" /> PolancoWatch Core v1.3.4 Build Final
+                            <Settings size={14} className="animate-spin-slow" /> PolancoWatch Core v1.4.0 Build Final
                         </div>
                     </footer>
                 </div>
