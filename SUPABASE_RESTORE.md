@@ -115,64 +115,39 @@ La base de datos contiene únicamente los metadatos de los archivos (en la tabla
 #### ⚠️ IMPORTANTE: Atributos Extendidos (xattrs)
 Supabase Storage guarda el `contentType` (`user.supabase.content-type`) y `cacheControl` (`user.supabase.cache-control`) en los atributos extendidos del sistema de archivos. Si copias o comprimes el Storage sin preservar los atributos extendidos, los archivos darán error 500 en Supabase al visualizarlos o descargarlos (`"The extended attribute does not exist"` o `ENODATA`).
 
-Para respaldar y restaurar correctamente, sigue uno de estos métodos:
+El procedimiento correcto y más eficiente consiste en manipular directamente los directorios montados por Dokploy en el host VPS, utilizando `tar` con soporte para atributos extendidos o `rsync`.
 
-#### Opción 1: Método Universal (Usando `docker cp` y `tar` con xattrs - Recomendado)
-Este método no requiere saber en qué ruta física del disco del servidor están los archivos, ya que se leen directamente del contenedor.
-
-1. **Respaldar el Storage (Origen):**
-   ```bash
-   # Copiar los archivos del contenedor a una carpeta temporal del host
-   docker cp [NOMBRE_CONTENEDOR_STORAGE]:/var/lib/storage /var/backups/storage_temp
-   
-   # Comprimir la carpeta temporal preservando xattrs
-   tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /var/backups/storage_temp .
-   
-   # Eliminar la carpeta temporal
-   rm -rf /var/backups/storage_temp
-   ```
-2. **Restaurar el Storage (Destino):**
-   ```bash
-   # Crear carpeta temporal y extraer el backup preservando xattrs
-   mkdir -p /var/backups/storage_restore
-   tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /var/backups/storage_restore
-   
-   # Limpiar el directorio actual dentro del contenedor de destino
-   docker exec -u 0 [NOMBRE_CONTENEDOR_STORAGE] rm -rf /var/lib/storage/*
-   
-   # Copiar los archivos restaurados al contenedor de destino
-   docker cp /var/backups/storage_restore/. [NOMBRE_CONTENEDOR_STORAGE]:/var/lib/storage/
-   
-   # Limpiar carpeta temporal y reiniciar el contenedor para refrescar permisos
-   rm -rf /var/backups/storage_restore
-   docker restart [NOMBRE_CONTENEDOR_STORAGE]
-   ```
-
-#### Opción 2: Método Directo en el Host (Ruta de Dokploy con rsync o tar con xattrs)
-Si prefieres manipular los directorios en el servidor directamente, primero localiza la ruta física ejecutando:
+Primero, localiza la ruta física del Storage en el host si es necesario (generalmente está bajo la carpeta del compose en `/etc/dokploy/compose/...`):
 ```bash
 docker inspect [NOMBRE_CONTENEDOR_STORAGE] --format '{{range .Mounts}}{{if eq .Destination "/var/lib/storage"}}{{.Source}}{{end}}{{end}}'
 ```
-*En tu servidor de Dokploy actual, la ruta origen es: `/etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage`*
+*En tu servidor de Dokploy actual, la ruta de origen es: `/etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage`*
 
-1. **Respaldar en el Host:**
-   ```bash
-   tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/devops-supabase-3mbeiq/files/volumes/storage .
-   ```
-2. **Restaurar en el Host:**
-   ```bash
-   # Limpiar la ruta física de destino
-   rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*
-   
-   # Descomprimir los archivos preservando xattrs
-   tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
-   
-   # O si copias directamente entre carpetas del host sin tar, usa rsync con -aAX para preservar xattrs:
-   # rsync -aAX /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
-   
-   # Reiniciar el contenedor
-   docker restart [NOMBRE_CONTENEDOR_STORAGE]
-   ```
+#### 1. Respaldar en el Host (Genera un archivo .tar.gz preservando atributos xattrs):
+```bash
+tar --xattrs --xattrs-include='user.supabase.*' -czf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage .
+```
+
+#### 2. Restaurar en el Host Destino:
+```bash
+# A. Limpiar el destino
+rm -rf /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/*
+
+# B. Descomprimir preservando atributos extendidos
+tar --xattrs --xattrs-include='user.supabase.*' -xzf /var/backups/supabase-storage-backup.tar.gz -C /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
+
+# C. Corregir propietario en el host y reiniciar contenedor de storage
+chown -R root:root /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage
+docker restart [NOMBRE_CONTENEDOR_STORAGE]
+```
+
+> [!TIP]
+> **Alternativa directa con Rsync (Sin crear archivos .tar.gz):**
+> Si estás copiando archivos directamente entre carpetas locales del mismo VPS (o entre servidores con SSH), puedes transferirlos en un solo comando preservando permisos y xattrs con:
+> ```bash
+> rsync -aAX /etc/dokploy/compose/[PROJECT_ID_ORIGEN]/files/volumes/storage/ /etc/dokploy/compose/[PROJECT_ID_DESTINO]/files/volumes/storage/
+> ```
+
 
 #### 🛠️ ¿Cómo solucionar si ya copiaste los archivos y faltan los atributos extendidos?
 Si ya migraste los archivos y no puedes visualizarlos/descargarlos porque perdiste los xattrs, ejecuta este script Python directamente en tu servidor para reconstruirlos a partir de los archivos `.json` de metadatos (necesita el paquete `attr` instalado: `apt-get install attr`):
