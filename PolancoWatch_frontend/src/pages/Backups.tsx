@@ -146,7 +146,7 @@ const Combobox = ({
                 className="px-4 py-3 hover:bg-brand-primary/10 cursor-pointer transition-colors border-t border-brand-primary/20 group"
               >
                 <p className="text-xs font-black text-brand-primary group-hover:text-brand-secondary transition-colors">Use "{search}"</p>
-                <p className="text-[9px] text-brand-primary/60 font-bold mt-1 truncate">Custom Database Name</p>
+                <p className="text-[9px] text-brand-primary/60 font-bold mt-1 truncate">Custom Value / Path</p>
               </div>
             )}
           </div>
@@ -1328,6 +1328,7 @@ const Backups = () => {
               value={newBackupTarget} 
               onChange={setNewBackupTarget} 
               placeholder="Select volume asset..."
+              allowCustom={true}
             />
           </div>
         ) : (
@@ -1622,6 +1623,7 @@ const Backups = () => {
                 options={availableVolumes} 
                 value={newSchedTarget} 
                 onChange={setNewSchedTarget} 
+                allowCustom={true}
               />
             </div>
           ) : (
