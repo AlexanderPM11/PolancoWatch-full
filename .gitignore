@@ -1,1 +1,6 @@
 .env
+
+# Playwright
+**/playwright-report/
+**/test-results/
+**/screenshots/
