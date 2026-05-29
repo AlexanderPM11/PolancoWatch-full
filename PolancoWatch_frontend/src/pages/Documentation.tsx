@@ -14,7 +14,8 @@ import {
   Shield, 
   Database,
   Copy,
-  Check
+  Check,
+  FolderSync
 } from 'lucide-react';
 
 interface CodeBlockProps {
@@ -103,7 +104,8 @@ export default function Documentation() {
                             { id: 'security', label: 'Security', icon: Shield },
                             { id: 'metrics', label: 'Metrics', icon: Activity },
                             { id: 'integrations', label: 'Integrations', icon: Cloud },
-                            { id: 'supabase', label: 'Supabase DB', icon: Database }
+                            { id: 'restores', label: 'Automated Restores', icon: FolderSync },
+                            { id: 'supabase', label: 'Manual Supabase', icon: Database }
                         ].map(tab => (
                             <button
                                 key={tab.id}
@@ -405,6 +407,46 @@ GOOGLE_DRIVE_REDIRECT_URI=https://api.yourdomain.com/api/backups/drive/callback`
                                     </div>
                                 </section>
                             </div>
+                        )}
+
+                        {activeTab === 'restores' && (
+                            <section className="glass-panel rounded-4xl p-10 border-white/5 bg-gradient-to-br from-brand-primary/5 to-transparent animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex items-start gap-6 mb-8">
+                                    <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
+                                        <FolderSync size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-3xl font-black text-white tracking-tight uppercase">Automated Restorations</h2>
+                                        <p className="text-slate-400 text-base mt-1">Zero-downtime, fully automated database and storage restoration</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-8">
+                                    <p className="text-base leading-relaxed text-slate-300">
+                                        PolancoWatch incluye un sistema avanzado de orquestación de restauraciones mediante <strong className="text-white">Hangfire</strong>, el cual evita bloqueos pesados y se ejecuta completamente en segundo plano. A través de la pestaña <strong>Restores</strong> en la pantalla principal de <strong>Backups</strong>, los usuarios pueden subir archivos enormes de bases de datos o almacenamiento sin límites de tamaño gracias a integraciones multipart.
+                                    </p>
+
+                                    <div className="grid md:grid-cols-2 gap-8">
+                                        <div className="bg-obsidian-900 border border-white/10 rounded-3xl p-6">
+                                            <h3 className="text-sm font-black text-brand-secondary uppercase tracking-widest mb-4">Inteligencia de Contenedores</h3>
+                                            <p className="text-base text-slate-300 leading-relaxed">
+                                                La plataforma utiliza la <strong className="text-white">API local de Docker</strong> para inspeccionar los contenedores en tiempo real. Cuando solicitas una restauración de "Storage" para Supabase o WordPress, el sistema detecta <em>automáticamente</em> las rutas físicas mapeadas en el host (ej. <code className="text-xs font-mono bg-white/5 px-1 py-0.5 rounded">/var/lib/storage</code> o <code className="text-xs font-mono bg-white/5 px-1 py-0.5 rounded">/var/www/html</code>). Esto elimina la necesidad de configuración manual de rutas host.
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-obsidian-900 border border-white/10 rounded-3xl p-6">
+                                            <h3 className="text-sm font-black text-brand-secondary uppercase tracking-widest mb-4">Storage Inmutable (xattrs)</h3>
+                                            <p className="text-base text-slate-300 leading-relaxed">
+                                                Al restaurar volúmenes complejos como los de Supabase, la orquestación lanza temporalmente un contenedor efímero (<code className="text-xs font-mono bg-white/5 px-1 py-0.5 rounded">alpine:latest</code>) que monta directamente la ruta detectada. Desde allí, ejecuta comandos <code className="text-xs font-mono bg-white/5 px-1 py-0.5 rounded">tar --xattrs</code> para garantizar que todos los metadatos internos de content-types permanezcan completamente inalterados.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl p-5 text-sm text-brand-secondary leading-relaxed">
+                                        <strong>Seguimiento en Vivo:</strong> Todas las restauraciones envían actualizaciones de telemetría a través de <strong>SignalR</strong>, lo que permite visualizar barras de progreso en la UI mientras la base de datos se recrea en tiempo real.
+                                    </div>
+                                </div>
+                            </section>
                         )}
 
                         {activeTab === 'supabase' && (

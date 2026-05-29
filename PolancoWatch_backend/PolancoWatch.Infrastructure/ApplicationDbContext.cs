@@ -23,6 +23,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Backup> Backups { get; set; } = null!;
     public DbSet<BackupSchedule> BackupSchedules { get; set; } = null!;
     public DbSet<WebMonitorDailyStats> WebMonitorDailyStats { get; set; } = null!;
+    public DbSet<Restore> Restores { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

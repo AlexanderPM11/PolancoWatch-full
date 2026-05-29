@@ -289,4 +289,30 @@ export const backupService: BackupService = {
   revokeDriveAuth: () => api.delete('/api/backups/drive/auth').then(res => res.data),
 };
 
+export interface Restore {
+  id: string;
+  name: string;
+  type: number;
+  targetContainer: string;
+  filePath: string;
+  createdAt: string;
+  completedAt?: string;
+  status: number;
+  errorMessage?: string;
+}
+
+export const restoreService = {
+  getRestores: () => api.get<Restore[]>('/api/restores').then(res => res.data),
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ filePath: string }>('/api/restores/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(res => res.data);
+  },
+  executeRestore: (data: { name?: string; type: number; targetContainer: string; filePath: string }) => {
+    return api.post<Restore>('/api/restores/execute', data).then(res => res.data);
+  }
+};
+
 export default api;

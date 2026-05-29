@@ -28,6 +28,7 @@ import { backupSignalRService } from '../services/backupSignalR';
 import { format } from 'date-fns';
 import Toast, { type ToastType } from '../components/Toast';
 import Modal from '../components/Modal';
+import { RestoresTab } from '../components/RestoresTab';
 
 interface Backup {
   id: string;
@@ -299,7 +300,7 @@ const Backups = () => {
   const [scheduledTime, setScheduledTime] = useState("03:00");
 
   // Tabs & Pagination State
-  const [activeTab, setActiveTab] = useState<'history' | 'schedules'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'schedules' | 'restores'>('history');
   const [historyPage, setHistoryPage] = useState(1);
   const [schedulesPage, setSchedulesPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -902,6 +903,17 @@ const Backups = () => {
               <Clock size={16} />
               <span className="text-[10px] uppercase tracking-[0.2em]">Automation Protocols</span>
             </button>
+            <button 
+              onClick={() => setActiveTab('restores')}
+              className={`flex items-center gap-3 px-6 py-3 rounded-[1.1rem] transition-all ${
+                activeTab === 'restores' 
+                  ? 'bg-brand-primary text-obsidian-950 font-black shadow-xl shadow-brand-primary/20' 
+                  : 'text-slate-500 font-bold hover:text-white'
+              }`}
+            >
+              <FolderSync size={16} />
+              <span className="text-[10px] uppercase tracking-[0.2em]">Restores</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -911,7 +923,9 @@ const Backups = () => {
         </div>
 
         <div className="bg-obsidian-900/50 border border-white/10 rounded-[2.5rem] overflow-hidden backdrop-blur-3xl shadow-2xl min-h-[500px] flex flex-col">
-          {activeTab === 'history' ? (
+          {activeTab === 'restores' ? (
+            <RestoresTab />
+          ) : activeTab === 'history' ? (
             <>
               {/* Controls: Filter & Wipe */}
               <div className="px-8 py-4 border-b border-white/5 bg-white/2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

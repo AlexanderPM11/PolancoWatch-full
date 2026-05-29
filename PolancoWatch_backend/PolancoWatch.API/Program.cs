@@ -4,6 +4,7 @@ using PolancoWatch.API.Hubs;
 using PolancoWatch.Application.Interfaces;
 using PolancoWatch.Infrastructure.Services;
 using PolancoWatch.Infrastructure.Services.BackupStrategies;
+using PolancoWatch.Infrastructure.Services.RestoreStrategies;
 using PolancoWatch.API.Filters;
 
 using Hangfire;
@@ -63,6 +64,13 @@ builder.Services.AddSingleton<IBackupStrategy, LocalFileBackupStrategy>();
 builder.Services.AddSingleton<IBackupStrategy, DockerDatabaseBackupStrategy>();
 builder.Services.AddSingleton<IBackupStrategy, DockerVolumeBackupStrategy>();
 builder.Services.AddSingleton<BackupStrategyFactory>();
+
+builder.Services.AddSingleton<RestoreManager>();
+builder.Services.AddSingleton<IRestoreStrategy, SupabaseDatabaseRestoreStrategy>();
+builder.Services.AddSingleton<IRestoreStrategy, SupabaseStorageRestoreStrategy>();
+builder.Services.AddSingleton<IRestoreStrategy, WordPressDatabaseRestoreStrategy>();
+builder.Services.AddSingleton<IRestoreStrategy, WordPressStorageRestoreStrategy>();
+builder.Services.AddSingleton<RestoreStrategyFactory>();
 
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
