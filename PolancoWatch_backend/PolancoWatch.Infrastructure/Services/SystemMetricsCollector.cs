@@ -28,9 +28,19 @@ public class SystemMetricsCollector : IMetricsCollector
 
     // Static & Instance Caching
     private static SystemInfoMetrics? _cachedSystemInfo;
+    
+    // Docker Caching
     private List<DockerContainerMetrics> _lastDockerContainers = new();
     private DateTime _lastDockerListTime = DateTime.MinValue;
     private readonly TimeSpan _dockerCacheTtl = TimeSpan.FromSeconds(5);
+    private bool _isDockerUpdating = false;
+    private DockerStats _cachedDockerStats = new DockerStats();
+
+    // Linux Process Caching
+    private bool _isProcessUpdating = false;
+    private DateTime _lastProcessListTime = DateTime.MinValue;
+    private readonly TimeSpan _processCacheTtl = TimeSpan.FromSeconds(10);
+    private List<ProcessMetrics> _lastProcessList = new();
 
     // Performance Counters for Core Metrics (Windows)
     private List<PerformanceCounter> _winCoreCounters = new();
@@ -491,145 +501,167 @@ public class SystemMetricsCollector : IMetricsCollector
 
     private async Task ParseProcessesLinuxAsync(List<ProcessMetrics> processes)
     {
-        try
+        processes.AddRange(_lastProcessList);
+
+        if (DateTime.UtcNow - _lastProcessListTime > _processCacheTtl && !_isProcessUpdating)
         {
-            var psi = new ProcessStartInfo
+            _isProcessUpdating = true;
+            _ = Task.Run(async () =>
             {
-                FileName = "ps",
-                Arguments = "-eo pid,comm,%cpu,rss --sort=-%cpu",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(psi);
-            if (process == null) return;
-
-            string output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            int coreCount = Environment.ProcessorCount;
-            
-            var allProcs = new List<ProcessMetrics>();
-            // Skip the header (index 0)
-            for (int i = 1; i < lines.Length; i++)
-            {
-                var parts = lines[i].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 4)
+                try
                 {
-                    if (int.TryParse(parts[0], out int pid) && 
-                        double.TryParse(parts[parts.Length - 2], out double cpu) && 
-                        long.TryParse(parts[parts.Length - 1], out long rss))
+                    var psi = new ProcessStartInfo
                     {
-                        string name = string.Join(" ", parts.Skip(1).Take(parts.Length - 3));
-                        allProcs.Add(new ProcessMetrics
+                        FileName = "ps",
+                        Arguments = "-eo pid,comm,%cpu,rss --sort=-%cpu",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    using var process = Process.Start(psi);
+                    if (process == null) return;
+
+                    string output = await process.StandardOutput.ReadToEndAsync();
+                    await process.WaitForExitAsync();
+
+                    var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    int coreCount = Environment.ProcessorCount;
+                    
+                    var allProcs = new List<ProcessMetrics>();
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        var parts = lines[i].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 4)
                         {
-                            ProcessId = pid,
-                            Name = name,
-                            CpuUsagePercentage = Math.Round(cpu / coreCount, 2),
-                            MemoryUsageBytes = rss * 1024
-                        });
+                            if (int.TryParse(parts[0], out int pid) && 
+                                double.TryParse(parts[parts.Length - 2], out double cpu) && 
+                                long.TryParse(parts[parts.Length - 1], out long rss))
+                            {
+                                string name = string.Join(" ", parts.Skip(1).Take(parts.Length - 3));
+                                allProcs.Add(new ProcessMetrics
+                                {
+                                    ProcessId = pid,
+                                    Name = name,
+                                    CpuUsagePercentage = Math.Round(cpu / coreCount, 2),
+                                    MemoryUsageBytes = rss * 1024
+                                });
+                            }
+                        }
                     }
+
+                    var merged = allProcs.OrderByDescending(p => p.CpuUsagePercentage).Take(15)
+                        .Concat(allProcs.OrderByDescending(p => p.MemoryUsageBytes).Take(15))
+                        .GroupBy(p => p.ProcessId)
+                        .Select(g => g.First())
+                        .ToList();
+
+                    _lastProcessList = merged;
+                    _lastProcessListTime = DateTime.UtcNow;
                 }
-            }
-
-            var merged = allProcs.OrderByDescending(p => p.CpuUsagePercentage).Take(15)
-                .Concat(allProcs.OrderByDescending(p => p.MemoryUsageBytes).Take(15))
-                .GroupBy(p => p.ProcessId)
-                .Select(g => g.First())
-                .ToList();
-
-            processes.AddRange(merged);
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to parse Linux processes via 'ps' command.");
+                }
+                finally
+                {
+                    _isProcessUpdating = false;
+                }
+            });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to parse Linux processes via 'ps' command.");
-        }
+        await Task.CompletedTask;
     }
 
     private async Task ParseDockerAsync(ServerMetricsSnapshot snapshot)
     {
         if (_dockerClient == null) return;
 
-        try
+        snapshot.DockerContainers.AddRange(_lastDockerContainers);
+        snapshot.DockerStats.TotalContainers = _cachedDockerStats.TotalContainers;
+        snapshot.DockerStats.RunningContainers = _cachedDockerStats.RunningContainers;
+        snapshot.DockerStats.StoppedContainers = _cachedDockerStats.StoppedContainers;
+        snapshot.DockerStats.TotalImages = _cachedDockerStats.TotalImages;
+
+        if (DateTime.UtcNow - _lastDockerListTime > _dockerCacheTtl && !_isDockerUpdating)
         {
-            // Caching: Only refresh container list every 5 seconds
-            IList<ContainerListResponse> containers;
-            if (DateTime.UtcNow - _lastDockerListTime > _dockerCacheTtl)
+            _isDockerUpdating = true;
+            _ = Task.Run(async () =>
             {
-                containers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters { All = true });
-                _lastDockerListTime = DateTime.UtcNow;
-                
-                // We'll update stats for these in parallel
-                var dockerContainers = new List<DockerContainerMetrics>();
-                using var semaphore = new SemaphoreSlim(5);
+                try
+                {
+                    var containers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters { All = true });
+                    
+                    var dockerContainers = new List<DockerContainerMetrics>();
+                    using var semaphore = new SemaphoreSlim(5);
 
-                var containerStatsTasks = containers.Select(async c => {
-                    var container = new DockerContainerMetrics
-                    {
-                        ContainerId = c.ID.Length >= 12 ? c.ID.Substring(0, 12) : c.ID,
-                        Name = c.Names.FirstOrDefault()?.TrimStart('/') ?? "unknown",
-                        Image = c.Image,
-                        Status = c.Status,
-                        State = c.State
-                    };
+                    var containerStatsTasks = containers.Select(async c => {
+                        var container = new DockerContainerMetrics
+                        {
+                            ContainerId = c.ID.Length >= 12 ? c.ID.Substring(0, 12) : c.ID,
+                            Name = c.Names.FirstOrDefault()?.TrimStart('/') ?? "unknown",
+                            Image = c.Image,
+                            Status = c.Status,
+                            State = c.State
+                        };
 
-                    if (c.State == "running")
-                    {
-                        await semaphore.WaitAsync();
-                        try {
-                            using var statsStream = await _dockerClient!.Containers.GetContainerStatsAsync(c.ID, new ContainerStatsParameters { Stream = false }, CancellationToken.None);
-                            using var reader = new System.IO.StreamReader(statsStream);
-                            var json = await reader.ReadToEndAsync();
-                            if (!string.IsNullOrEmpty(json)) {
-                                var stats = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.Nodes.JsonNode>(json);
-                                if (stats != null) {
-                                    // ... CPU/Mem logic simplified for brevity in this cache block ...
-                                    var memUsage = stats["memory_stats"]?["usage"]?.GetValue<long>() ?? 0;
-                                    container.MemoryUsageBytes = memUsage;
-                                    
-                                    var cpuStats = stats["cpu_stats"];
-                                    var precpuStats = stats["precpu_stats"];
-                                    if (cpuStats != null && precpuStats != null) {
-                                        var cpuTotal = (double)(cpuStats["cpu_usage"]?["total_usage"]?.GetValue<long>() ?? 0);
-                                        var precpuTotal = (double)(precpuStats["cpu_usage"]?["total_usage"]?.GetValue<long>() ?? 0);
-                                        var systemCpu = (double)(cpuStats["system_cpu_usage"]?.GetValue<long>() ?? 0);
-                                        var presystemCpu = (double)(precpuStats["system_cpu_usage"]?.GetValue<long>() ?? 0);
-                                        var cpuDelta = cpuTotal - precpuTotal;
-                                        var systemDelta = systemCpu - presystemCpu;
-                                        if (systemDelta > 0 && cpuDelta > 0) {
-                                            container.CpuPercentage = Math.Round((cpuDelta / systemDelta) * (double)(cpuStats["online_cpus"]?.GetValue<int>() ?? 1) * 100.0, 2);
+                        if (c.State == "running")
+                        {
+                            await semaphore.WaitAsync();
+                            try {
+                                using var statsStream = await _dockerClient!.Containers.GetContainerStatsAsync(c.ID, new ContainerStatsParameters { Stream = false }, CancellationToken.None);
+                                using var reader = new System.IO.StreamReader(statsStream);
+                                var json = await reader.ReadToEndAsync();
+                                if (!string.IsNullOrEmpty(json)) {
+                                    var stats = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.Nodes.JsonNode>(json);
+                                    if (stats != null) {
+                                        var memUsage = stats["memory_stats"]?["usage"]?.GetValue<long>() ?? 0;
+                                        container.MemoryUsageBytes = memUsage;
+                                        
+                                        var cpuStats = stats["cpu_stats"];
+                                        var precpuStats = stats["precpu_stats"];
+                                        if (cpuStats != null && precpuStats != null) {
+                                            var cpuTotal = (double)(cpuStats["cpu_usage"]?["total_usage"]?.GetValue<long>() ?? 0);
+                                            var precpuTotal = (double)(precpuStats["cpu_usage"]?["total_usage"]?.GetValue<long>() ?? 0);
+                                            var systemCpu = (double)(cpuStats["system_cpu_usage"]?.GetValue<long>() ?? 0);
+                                            var presystemCpu = (double)(precpuStats["system_cpu_usage"]?.GetValue<long>() ?? 0);
+                                            var cpuDelta = cpuTotal - precpuTotal;
+                                            var systemDelta = systemCpu - presystemCpu;
+                                            if (systemDelta > 0 && cpuDelta > 0) {
+                                                container.CpuPercentage = Math.Round((cpuDelta / systemDelta) * (double)(cpuStats["online_cpus"]?.GetValue<int>() ?? 1) * 100.0, 2);
+                                            }
                                         }
                                     }
                                 }
+                            } catch { }
+                            finally {
+                                semaphore.Release();
                             }
-                        } catch { }
-                        finally {
-                            semaphore.Release();
                         }
-                    }
-                    return container;
-                });
+                        return container;
+                    });
 
-                _lastDockerContainers = (await Task.WhenAll(containerStatsTasks)).ToList();
-            }
+                    _lastDockerContainers = (await Task.WhenAll(containerStatsTasks)).ToList();
+                    
+                    _cachedDockerStats.TotalContainers = _lastDockerContainers.Count;
+                    _cachedDockerStats.RunningContainers = _lastDockerContainers.Count(c => c.State == "running");
+                    _cachedDockerStats.StoppedContainers = _lastDockerContainers.Count(c => c.State == "exited" || c.State == "created");
+                    
+                    var images = await _dockerClient.Images.ListImagesAsync(new ImagesListParameters());
+                    _cachedDockerStats.TotalImages = images.Count;
 
-            snapshot.DockerContainers.AddRange(_lastDockerContainers);
-
-            // Global Stats
-            snapshot.DockerStats.TotalContainers = _lastDockerContainers.Count;
-            snapshot.DockerStats.RunningContainers = _lastDockerContainers.Count(c => c.State == "running");
-            snapshot.DockerStats.StoppedContainers = _lastDockerContainers.Count(c => c.State == "exited" || c.State == "created");
-            
-            // Cache images list too? Maybe just fetch it, it's small.
-            var images = await _dockerClient.Images.ListImagesAsync(new ImagesListParameters());
-            snapshot.DockerStats.TotalImages = images.Count;
+                    _lastDockerListTime = DateTime.UtcNow;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug("Docker collection skipped: {Message}", ex.Message);
+                }
+                finally
+                {
+                    _isDockerUpdating = false;
+                }
+            });
         }
-        catch (Exception ex)
-        {
-            _logger.LogDebug("Docker collection skipped: {Message}", ex.Message);
-        }
+        await Task.CompletedTask;
     }
 
     private string FormatBytes(long bytes)

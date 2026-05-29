@@ -7,9 +7,17 @@ namespace PolancoWatch.API.Hubs;
 [Authorize]
 public class MetricsHub : Hub<IMetricsClient>
 {
+    private readonly IMetricsCollector _metricsCollector;
+
+    public MetricsHub(IMetricsCollector metricsCollector)
+    {
+        _metricsCollector = metricsCollector;
+    }
+
     public override async Task OnConnectedAsync()
     {
-        // TODO: Log or authenticate connections
+        var snapshot = await _metricsCollector.CollectMetricsAsync();
+        await Clients.Caller.ReceiveMetrics(snapshot);
         await base.OnConnectedAsync();
     }
     
