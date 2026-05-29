@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Info, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 interface ModalProps {
@@ -41,8 +42,8 @@ export default function Modal({ isOpen, onClose, title, children, type = 'info',
         info: 'border-brand-primary/20 shadow-[0_0_40px_rgba(167,139,250,0.1)]'
     };
 
-    return (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-obsidian-950/80 backdrop-blur-md animate-fade-in"
@@ -76,6 +77,7 @@ export default function Modal({ isOpen, onClose, title, children, type = 'info',
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

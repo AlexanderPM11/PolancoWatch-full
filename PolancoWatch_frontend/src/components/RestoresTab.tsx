@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { 
   FolderSync, 
   Upload, 
@@ -12,6 +11,8 @@ import {
 import { restoreService, type Restore, backupService } from '../services/api';
 import { backupSignalRService } from '../services/backupSignalR';
 import Toast, { type ToastType } from './Toast';
+import Modal from './Modal';
+import { Combobox } from './Combobox';
 
 export const RestoresTab = () => {
   const [restores, setRestores] = useState<Restore[]>([]);
@@ -190,87 +191,81 @@ export const RestoresTab = () => {
         )}
       </div>
 
-      {isModalOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-obsidian-950/80 backdrop-blur-xl" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative w-full max-w-lg bg-obsidian-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-            <h2 className="text-xl font-black text-white uppercase tracking-widest mb-6">Execute Restore</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Restore Name</label>
-                <input 
-                  type="text" 
-                  value={restoreName}
-                  onChange={(e) => setRestoreName(e.target.value)}
-                  placeholder="e.g. Rollback to v1.2"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-brand-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Strategy Type</label>
-                <select 
-                  value={restoreType}
-                  onChange={(e) => setRestoreType(Number(e.target.value))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none"
-                >
-                  <option value={0}>Supabase Database</option>
-                  <option value={1}>Supabase Storage</option>
-                  <option value={2}>WordPress Database</option>
-                  <option value={3}>WordPress Storage</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Target Container</label>
-                <select 
-                  value={targetContainer}
-                  onChange={(e) => setTargetContainer(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none"
-                >
-                  <option value="">-- Select Container --</option>
-                  {availableContainers.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Backup File (.tar.gz, .sql)</label>
-                <label className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 hover:border-brand-primary/50 border-dashed rounded-xl px-4 py-6 text-xs text-white cursor-pointer transition-all">
-                  <Upload size={18} className={selectedFile ? "text-emerald-400" : "text-brand-primary"} />
-                  <span className="font-bold uppercase tracking-widest">{selectedFile ? selectedFile.name : 'Choose File to Upload'}</span>
-                  <input type="file" className="hidden" onChange={handleFileChange} />
-                </label>
-              </div>
-
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mt-4">
-                  <div className="bg-brand-primary h-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-8 flex justify-end gap-3">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleExecuteRestore}
-                disabled={uploadProgress > 0 && uploadProgress < 100}
-                className="bg-brand-primary text-obsidian-950 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-secondary transition-all disabled:opacity-50"
-              >
-                Start Restore
-              </button>
-            </div>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="Execute Restore"
+        footer={
+          <>
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleExecuteRestore}
+              disabled={uploadProgress > 0 && uploadProgress < 100}
+              className="bg-brand-primary text-obsidian-950 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-secondary transition-all disabled:opacity-50"
+            >
+              Start Restore
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Restore Name</label>
+            <input 
+              type="text" 
+              value={restoreName}
+              onChange={(e) => setRestoreName(e.target.value)}
+              placeholder="e.g. Rollback to v1.2"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-brand-primary"
+            />
           </div>
-        </div>,
-        document.body
-      )}
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Strategy Type</label>
+            <Combobox
+              options={[
+                { name: 'Supabase Database', path: '0' },
+                { name: 'Supabase Storage', path: '1' },
+                { name: 'WordPress Database', path: '2' },
+                { name: 'WordPress Storage', path: '3' },
+              ]}
+              value={restoreType.toString()}
+              onChange={(val) => setRestoreType(Number(val))}
+              placeholder="Select strategy type..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Target Container</label>
+            <Combobox
+              options={availableContainers.map(c => ({ name: c.name, path: c.name }))}
+              value={targetContainer}
+              onChange={(val) => setTargetContainer(val)}
+              placeholder="Select target container..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Backup File (.tar.gz, .sql)</label>
+            <label className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 hover:border-brand-primary/50 border-dashed rounded-xl px-4 py-6 text-xs text-white cursor-pointer transition-all">
+              <Upload size={18} className={selectedFile ? "text-emerald-400" : "text-brand-primary"} />
+              <span className="font-bold uppercase tracking-widest">{selectedFile ? selectedFile.name : 'Choose File to Upload'}</span>
+              <input type="file" className="hidden" onChange={handleFileChange} />
+            </label>
+          </div>
+
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mt-4">
+              <div className="bg-brand-primary h-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
