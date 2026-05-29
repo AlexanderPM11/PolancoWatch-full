@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FolderSync, 
   Upload, 
@@ -189,8 +190,8 @@ export const RestoresTab = () => {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-obsidian-950/80 backdrop-blur-xl" onClick={() => setIsModalOpen(false)}></div>
           <div className="relative w-full max-w-lg bg-obsidian-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
             <h2 className="text-xl font-black text-white uppercase tracking-widest mb-6">Execute Restore</h2>
@@ -267,7 +268,8 @@ export const RestoresTab = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
