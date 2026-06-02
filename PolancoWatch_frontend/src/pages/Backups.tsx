@@ -725,6 +725,17 @@ const Backups = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const formatDRDate = (dateStr: string | Date, formatStr: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      const drTime = new Date(d.toLocaleString('en-US', { timeZone: 'America/Santo_Domingo' }));
+      return format(drTime, formatStr);
+    } catch {
+      return '—';
+    }
+  };
+
   const getStatusIcon = (status: number) => {
     switch (status) {
       case 1: return <Loader2 className="w-4 h-4 text-brand-primary animate-spin" />;
@@ -1037,7 +1048,7 @@ const Backups = () => {
                             </div>
                           </td>
                           <td className="px-8 py-5 text-[10px] text-slate-500 font-black uppercase">
-                            {format(new Date(backup.createdAt), 'MMM dd | HH:mm:ss')}
+                            {formatDRDate(backup.createdAt, 'MMM dd | HH:mm:ss')}
                           </td>
                           <td className="px-8 py-5 text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
@@ -1079,7 +1090,7 @@ const Backups = () => {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-black text-white uppercase tracking-tight">{backup.name}</span>
-                                    <span className="text-[10px] text-slate-500 font-mono mt-1">{format(new Date(backup.createdAt), 'MMM dd | HH:mm:ss')}</span>
+                                    <span className="text-[10px] text-slate-500 font-mono mt-1">{formatDRDate(backup.createdAt, 'MMM dd | HH:mm:ss')}</span>
                                 </div>
                             </div>
                             <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border shrink-0 ${
@@ -1208,7 +1219,7 @@ const Backups = () => {
                           </td>
                           <td className="px-8 py-5">
                              <span className="text-[10px] font-black text-slate-500 uppercase">
-                               {s.nextRun ? format(new Date(s.nextRun), 'hh:mm aa | MMM dd') : '—'}
+                               {s.nextRun ? formatDRDate(s.nextRun, 'hh:mm aa | MMM dd') : '—'}
                              </span>
                           </td>
                           <td className="px-8 py-5 text-right">
@@ -1316,7 +1327,7 @@ const Backups = () => {
                             <div className="flex flex-col gap-1 items-end">
                                 <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Next Run</span>
                                 <span className="text-[10px] font-black text-brand-secondary uppercase text-right">
-                                   {s.nextRun ? format(new Date(s.nextRun), 'hh:mm aa | MMM dd') : '—'}
+                                   {s.nextRun ? formatDRDate(s.nextRun, 'hh:mm aa | MMM dd') : '—'}
                                 </span>
                             </div>
                         </div>
