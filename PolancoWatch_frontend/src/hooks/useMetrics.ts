@@ -70,13 +70,13 @@ export const useMetrics = () => {
                 setIsConnected(true);
 
                 const now = new Date();
-                setCpuHistory(prev => [...prev, { timestamp: now, value: newMetrics.cpu?.totalUsagePercentage || 0 }].slice(-30));
-                setMemoryHistory(prev => [...prev, { timestamp: now, value: newMetrics.memory?.usagePercentage || 0 }].slice(-30));
+                setCpuHistory(prev => [...prev, { timestamp: now, value: newMetrics.cpu?.totalUsagePercentage || 0 }].slice(-20));
+                setMemoryHistory(prev => [...prev, { timestamp: now, value: newMetrics.memory?.usagePercentage || 0 }].slice(-20));
                 
                 if (newMetrics.networks && newMetrics.networks.length > 0) {
                     const net = newMetrics.networks[0];
-                    setNetworkInHistory(prev => [...prev, { timestamp: now, value: (net.incomingBytesPerSecond || 0) / 1024 / 1024 }].slice(-30));
-                    setNetworkOutHistory(prev => [...prev, { timestamp: now, value: (net.outgoingBytesPerSecond || 0) / 1024 / 1024 }].slice(-30));
+                    setNetworkInHistory(prev => [...prev, { timestamp: now, value: (net.incomingBytesPerSecond || 0) / 1024 / 1024 }].slice(-20));
+                    setNetworkOutHistory(prev => [...prev, { timestamp: now, value: (net.outgoingBytesPerSecond || 0) / 1024 / 1024 }].slice(-20));
                 }
             }
         };

@@ -31,12 +31,18 @@ export default function Dashboard() {
     const fetchHistory = async () => {
         try {
             const data = await metricsService.getHistory(24);
-            const formatted = data.map((d: any) => ({
-                timestamp: new Date(d.timestamp),
-                cpu: d.cpuUsage,
-                memory: d.memoryUsage,
-                disk: d.diskUsage
-            }));
+            
+            const maxPoints = 40;
+            const step = Math.max(1, Math.floor(data.length / maxPoints));
+            
+            const formatted = data
+                .filter((_: any, i: number) => i % step === 0)
+                .map((d: any) => ({
+                    timestamp: new Date(d.timestamp),
+                    cpu: d.cpuUsage,
+                    memory: d.memoryUsage,
+                    disk: d.diskUsage
+                }));
             setHistoricalData(formatted);
         } catch (err) {
             console.error("Failed to fetch history", err);
