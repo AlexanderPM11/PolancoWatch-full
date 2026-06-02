@@ -1048,7 +1048,7 @@ const Backups = () => {
                             </div>
                           </td>
                           <td className="px-8 py-5 text-[10px] text-slate-500 font-black uppercase">
-                            {formatDRDate(backup.createdAt, 'MMM dd | HH:mm:ss')}
+                            {formatDRDate(backup.createdAt, 'MMM dd | hh:mm:ss aa')}
                           </td>
                           <td className="px-8 py-5 text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
@@ -1090,7 +1090,7 @@ const Backups = () => {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-black text-white uppercase tracking-tight">{backup.name}</span>
-                                    <span className="text-[10px] text-slate-500 font-mono mt-1">{formatDRDate(backup.createdAt, 'MMM dd | HH:mm:ss')}</span>
+                                    <span className="text-[10px] text-slate-500 font-mono mt-1">{formatDRDate(backup.createdAt, 'MMM dd | hh:mm:ss aa')}</span>
                                 </div>
                             </div>
                             <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border shrink-0 ${
