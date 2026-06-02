@@ -144,7 +144,9 @@ public class GoogleDriveService : IGoogleDriveService
         // 3. User DB
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        var user = username == "system" 
+            ? await context.Users.FirstOrDefaultAsync(u => u.GoogleDriveRefreshToken != null)
+            : await context.Users.FirstOrDefaultAsync(u => u.Username == username);
         return user?.GoogleDriveRefreshToken;
     }
 
@@ -160,7 +162,9 @@ public class GoogleDriveService : IGoogleDriveService
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            var user = username == "system" 
+                ? await context.Users.FirstOrDefaultAsync(u => u.GoogleDriveRefreshToken != null)
+                : await context.Users.FirstOrDefaultAsync(u => u.Username == username);
             targetFolderIdRaw = user?.GoogleDriveFolderId 
                 ?? Environment.GetEnvironmentVariable("GOOGLE_DRIVE_DEFAULT_FOLDER_ID")
                 ?? _configuration["GoogleDrive:DefaultFolderId"];
