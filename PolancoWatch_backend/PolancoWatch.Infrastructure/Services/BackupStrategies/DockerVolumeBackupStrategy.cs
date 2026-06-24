@@ -163,7 +163,7 @@ public class DockerVolumeBackupStrategy : IBackupStrategy
 
         string cmd = format == BackupFormat.Zip 
             ? $"apk add --no-cache zip && cd /data && zip -r -9 /backup/{safeFileName} ." 
-            : $"apk add --no-cache tar && tar --xattrs --xattrs-include='user.supabase.*' -czf /backup/{safeFileName} -C /data .";
+            : $"apk add --no-cache tar && (tar --xattrs --xattrs-include='user.supabase.*' -czf /backup/{safeFileName} -C /data . || [ $? -eq 1 ])";
 
         var containerConfig = new Config
         {
@@ -344,7 +344,7 @@ public class DockerVolumeBackupStrategy : IBackupStrategy
             try { process?.Kill(true); } catch { }
             throw new TimeoutException("The 'tar' process timed out after 5 minutes.");
         }
-        if (process.ExitCode != 0) throw new Exception($"Tar command failed: {process.StandardError.ReadToEnd() ?? "Unknown error"}");
+        if (process.ExitCode != 0 && process.ExitCode != 1) throw new Exception($"Tar command failed: {process.StandardError.ReadToEnd() ?? "Unknown error"}");
     }
 
     private static string ShellQuote(string value) => $"'{value.Replace("'", "'\\''")}'";
