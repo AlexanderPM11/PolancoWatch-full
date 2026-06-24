@@ -292,6 +292,7 @@ const Backups = () => {
   const [newSchedSendTelegram, setNewSchedSendTelegram] = useState(false);
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const isInitializingScheduleRef = useRef(false);
   
   // Advanced Scheduling State
   const [schedStrategy, setSchedStrategy] = useState<'interval' | 'calendar'>('interval');
@@ -358,6 +359,13 @@ const Backups = () => {
   }, [newBackupTarget, newBackupDbUser, newBackupDbPass]);
 
   useEffect(() => {
+    if (isInitializingScheduleRef.current) {
+      isInitializingScheduleRef.current = false;
+      if (newSchedTarget) {
+        handleLoadDatabases(newSchedTarget, newSchedDbUser, newSchedDbPass);
+      }
+      return;
+    }
     setAvailableDatabases([]);
     setNewSchedDbName("");
   }, [newSchedTarget, newSchedDbUser, newSchedDbPass]);
@@ -524,10 +532,19 @@ const Backups = () => {
   };
 
   const handleEditSchedule = (s: BackupSchedule) => {
+    isInitializingScheduleRef.current = true;
     setNewSchedName(s.name);
     setNewSchedType(s.type);
     const targetParts = (s.target || "").split("::");
-    setNewSchedTarget(targetParts[0]);
+    let target = targetParts[0];
+    
+    // Backward compatibility: resolve container name if target is an ID
+    const matchedContainer = availableContainers.find(c => c.id === target || c.name === target);
+    if (matchedContainer) {
+      target = matchedContainer.name;
+    }
+
+    setNewSchedTarget(target);
     setNewSchedDbName(targetParts.length > 1 ? targetParts[1] : "");
     setNewSchedDbUser(targetParts.length > 2 ? targetParts[2] : "root");
     setNewSchedDbPass(targetParts.length > 3 ? targetParts[3] : "");
@@ -560,10 +577,19 @@ const Backups = () => {
   };
 
   const handleCopySchedule = (s: BackupSchedule) => {
+    isInitializingScheduleRef.current = true;
     setNewSchedName(s.name + " (Copy)");
     setNewSchedType(s.type);
     const targetParts = (s.target || "").split("::");
-    setNewSchedTarget(targetParts[0]);
+    let target = targetParts[0];
+    
+    // Backward compatibility: resolve container name if target is an ID
+    const matchedContainer = availableContainers.find(c => c.id === target || c.name === target);
+    if (matchedContainer) {
+      target = matchedContainer.name;
+    }
+
+    setNewSchedTarget(target);
     setNewSchedDbName(targetParts.length > 1 ? targetParts[1] : "");
     setNewSchedDbUser(targetParts.length > 2 ? targetParts[2] : "root");
     setNewSchedDbPass(targetParts.length > 3 ? targetParts[3] : "");
@@ -1405,7 +1431,7 @@ const Backups = () => {
             <Combobox 
               options={[
                 { name: 'Internal SQLite Database', path: '' },
-                ...availableContainers.map(c => ({ name: c.name, path: c.id }))
+                ...availableContainers.map(c => ({ name: c.name, path: c.name }))
               ]} 
               value={newBackupTarget} 
               onChange={setNewBackupTarget} 
@@ -1700,7 +1726,7 @@ const Backups = () => {
               <Combobox 
                 options={[
                   { name: 'Internal SQLite Database', path: '' },
-                  ...availableContainers.map(c => ({ name: c.name, path: c.id }))
+                  ...availableContainers.map(c => ({ name: c.name, path: c.name }))
                 ]} 
                 value={newSchedTarget} 
                 onChange={setNewSchedTarget} 
